@@ -82,7 +82,7 @@ export function ContactSection({ topic }: { topic?: string }) {
           <Reveal delay={100} className="rounded-2xl bg-blanco-roto p-8 sm:p-10">
             <h3 className="font-display text-xl text-grafito">Envianos un Mensaje</h3>
             <div className="mt-6">
-              <ContactForm defaultMessage={defaultMessage} />
+              <ContactForm topic={topic} defaultMessage={defaultMessage} />
             </div>
           </Reveal>
         </div>

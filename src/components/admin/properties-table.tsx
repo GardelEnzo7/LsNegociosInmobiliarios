@@ -5,24 +5,17 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { deleteProperty, toggleFeatured, updateAvailability } from "@/app/actions/properties";
 import { OPERATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
+import { AVAILABILITY_LABELS, AVAILABILITY_STYLES } from "@/lib/admin/constants";
 import { cn, formatPrice } from "@/lib/utils";
 import type { PropertyWithImages } from "@/lib/data/properties";
 
-const AVAILABILITY_LABELS: Record<string, string> = {
-  disponible: "Disponible",
-  reservada: "Reservada",
-  vendida: "Vendida",
-  alquilada: "Alquilada",
-};
-
-const AVAILABILITY_STYLES: Record<string, string> = {
-  disponible: "bg-emerald-50 text-emerald-700",
-  reservada: "bg-amber-50 text-amber-700",
-  vendida: "bg-zinc-100 text-zinc-500",
-  alquilada: "bg-zinc-100 text-zinc-500",
-};
-
-export function PropertiesTable({ properties }: { properties: PropertyWithImages[] }) {
+export function PropertiesTable({
+  properties,
+  canDelete = true,
+}: {
+  properties: PropertyWithImages[];
+  canDelete?: boolean;
+}) {
   if (properties.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
@@ -51,7 +44,7 @@ export function PropertiesTable({ properties }: { properties: PropertyWithImages
         </thead>
         <tbody className="divide-y divide-zinc-100">
           {properties.map((property) => (
-            <PropertyRow key={property.id} property={property} />
+            <PropertyRow key={property.id} property={property} canDelete={canDelete} />
           ))}
         </tbody>
       </table>
@@ -59,7 +52,7 @@ export function PropertiesTable({ properties }: { properties: PropertyWithImages
   );
 }
 
-function PropertyRow({ property }: { property: PropertyWithImages }) {
+function PropertyRow({ property, canDelete }: { property: PropertyWithImages; canDelete: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [availability, setAvailability] = useState(property.availability);
   const [featured, setFeatured] = useState(property.featured);
@@ -135,17 +128,19 @@ function PropertyRow({ property }: { property: PropertyWithImages }) {
           >
             Editar
           </Link>
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm(`¿Eliminar "${property.title}"? Esta acción no se puede deshacer.`)) {
-                startTransition(() => deleteProperty(property.id));
-              }
-            }}
-            className="text-xs font-medium text-red-600 hover:underline"
-          >
-            Eliminar
-          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm(`¿Eliminar "${property.title}"? Esta acción no se puede deshacer.`)) {
+                  startTransition(() => deleteProperty(property.id));
+                }
+              }}
+              className="text-xs font-medium text-red-600 hover:underline"
+            >
+              Eliminar
+            </button>
+          ) : null}
         </div>
       </td>
     </tr>

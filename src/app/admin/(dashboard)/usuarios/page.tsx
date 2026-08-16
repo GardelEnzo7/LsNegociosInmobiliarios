@@ -1,7 +1,20 @@
 import { UsersList } from "@/components/admin/users-list";
 import { getAdminProfiles } from "@/lib/data/admin";
+import { getCurrentAdminRole } from "@/lib/supabase/guards";
 
 export default async function AdminUsersPage() {
+  const role = await getCurrentAdminRole();
+
+  if (role !== "admin") {
+    return (
+      <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
+        <p className="text-sm text-zinc-500">
+          Solo un Administrador puede gestionar los usuarios del panel.
+        </p>
+      </div>
+    );
+  }
+
   const profiles = await getAdminProfiles();
 
   return (

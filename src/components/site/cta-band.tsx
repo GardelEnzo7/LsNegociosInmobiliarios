@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Reveal } from "@/components/site/reveal";
 import { IconCalculator, IconChart, IconUsers } from "@/components/site/icons";
 
-const REASONS = [
+export const REASONS = [
   {
     icon: IconCalculator,
     title: "Valuación Profesional",
@@ -40,15 +40,21 @@ export function CtaBand() {
         <div className="mt-12 grid gap-4 sm:grid-cols-3">
           {REASONS.map((reason, index) => (
             <Reveal key={reason.title} delay={index * 80}>
-              <div className="h-full rounded-2xl bg-blanco-roto/5 p-7 text-left ring-1 ring-inset ring-blanco-roto/10">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blanco-roto/10 text-petroleo-claro">
+              <Link
+                href={`/contacto?asunto=${encodeURIComponent(reason.title)}`}
+                className="group block h-full rounded-2xl bg-blanco-roto/5 p-7 text-left ring-1 ring-inset ring-blanco-roto/10 transition-[background-color,ring-color] duration-300 ease-out hover:bg-blanco-roto/10 hover:ring-blanco-roto/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-petroleo-claro focus-visible:ring-offset-2 focus-visible:ring-offset-grafito"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blanco-roto/10 text-petroleo-claro transition-colors duration-300 ease-out group-hover:bg-petroleo-claro group-hover:text-grafito">
                   <reason.icon className="h-5 w-5" />
                 </div>
                 <h3 className="mt-5 font-display text-lg">{reason.title}</h3>
                 <p className="mt-2 font-body text-sm leading-relaxed text-blanco-roto/60">
                   {reason.description}
                 </p>
-              </div>
+                <span className="mt-5 flex items-center gap-1 font-utility text-[11px] uppercase tracking-[0.08em] text-petroleo-claro transition-transform duration-200 ease-out group-hover:translate-x-1">
+                  Consultar →
+                </span>
+              </Link>
             </Reveal>
           ))}
         </div>

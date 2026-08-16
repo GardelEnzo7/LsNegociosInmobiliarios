@@ -1,14 +1,16 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { createLead, type LeadFormState } from "@/app/actions/leads";
+import { createContact, type ContactFormState } from "@/app/actions/contacts";
+import { CONTACT_ROLE_LABELS } from "@/lib/admin/constants";
 
 type PropertyOption = { id: string; title: string; neighborhood: string };
 
-const initialState: LeadFormState = {};
+const initialState: ContactFormState = {};
+const ROLE_VALUES = Object.keys(CONTACT_ROLE_LABELS);
 
-export function LeadForm({ properties }: { properties: PropertyOption[] }) {
-  const [state, formAction, pending] = useActionState(createLead, initialState);
+export function ContactForm({ properties }: { properties: PropertyOption[] }) {
+  const [state, formAction, pending] = useActionState(createContact, initialState);
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -35,7 +37,7 @@ export function LeadForm({ properties }: { properties: PropertyOption[] }) {
       <form action={formAction} className="mt-4 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Nombre">
-            <input name="name" required className={inputClass} />
+            <input name="fullName" required className={inputClass} />
           </Field>
           <Field label="Origen">
             <select name="source" defaultValue="web" className={inputClass}>
@@ -53,12 +55,28 @@ export function LeadForm({ properties }: { properties: PropertyOption[] }) {
           </Field>
         </div>
 
+        <Field label="Rol">
+          <div className="flex flex-wrap gap-3">
+            {ROLE_VALUES.map((role) => (
+              <label key={role} className="flex items-center gap-1.5 text-sm text-zinc-700">
+                <input
+                  type="checkbox"
+                  name="roles"
+                  value={role}
+                  className="h-4 w-4 rounded border-zinc-300 text-petroleo focus:ring-petroleo"
+                />
+                {CONTACT_ROLE_LABELS[role]}
+              </label>
+            ))}
+          </div>
+        </Field>
+
         <Field label="Notas">
           <textarea name="notes" rows={2} className={inputClass} />
         </Field>
 
         {properties.length > 0 ? (
-          <Field label="Propiedades de interés">
+          <Field label="Propiedades relacionadas">
             <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-zinc-200 p-3">
               {properties.map((property) => (
                 <label key={property.id} className="flex items-center gap-2 text-sm text-zinc-700">

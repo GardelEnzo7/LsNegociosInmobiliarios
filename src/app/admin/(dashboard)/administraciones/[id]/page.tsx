@@ -34,17 +34,17 @@ export default async function AdminAdministracionDetailPage({
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-zinc-200 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Propietario / cliente</p>
-          <p className="mt-2 text-sm font-medium text-zinc-900">{contract.owners?.full_name ?? "—"}</p>
+          <p className="mt-2 text-sm font-medium text-zinc-900">{contract.owner?.full_name ?? "—"}</p>
           <p className="mt-0.5 text-xs text-zinc-500">
-            {[contract.owners?.contact_phone, contract.owners?.contact_email].filter(Boolean).join(" · ") ||
+            {[contract.owner?.contact_phone, contract.owner?.contact_email].filter(Boolean).join(" · ") ||
               "Sin datos de contacto"}
           </p>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Inquilino</p>
-          <p className="mt-2 text-sm font-medium text-zinc-900">{contract.tenants?.full_name ?? "—"}</p>
+          <p className="mt-2 text-sm font-medium text-zinc-900">{contract.tenant?.full_name ?? "—"}</p>
           <p className="mt-0.5 text-xs text-zinc-500">
-            {[contract.tenants?.contact_phone, contract.tenants?.contact_email].filter(Boolean).join(" · ") ||
+            {[contract.tenant?.contact_phone, contract.tenant?.contact_email].filter(Boolean).join(" · ") ||
               "Sin datos de contacto"}
           </p>
         </div>

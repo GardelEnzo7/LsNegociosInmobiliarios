@@ -2,14 +2,21 @@
 
 import { useActionState } from "react";
 import { submitContactMessage, type ContactFormState } from "@/app/actions/messages";
+import { IconChevronDown } from "@/components/site/icons";
+import { ALL_SERVICES } from "@/components/site/services";
+import { REASONS } from "@/components/site/cta-band";
 
 const initialState: ContactFormState = { status: "idle" };
 
+const SUBJECT_OPTIONS = [...ALL_SERVICES, ...REASONS].map((s) => s.title);
+
 export function ContactForm({
   propertyId,
+  topic,
   defaultMessage,
 }: {
   propertyId?: string;
+  topic?: string;
   defaultMessage?: string;
 }) {
   const [state, formAction, pending] = useActionState(submitContactMessage, initialState);
@@ -26,6 +33,8 @@ export function ContactForm({
     );
   }
 
+  const options = topic && !SUBJECT_OPTIONS.includes(topic) ? [topic, ...SUBJECT_OPTIONS] : SUBJECT_OPTIONS;
+
   return (
     <form action={formAction} className="space-y-4">
       {propertyId ? <input type="hidden" name="propertyId" value={propertyId} /> : null}
@@ -34,6 +43,24 @@ export function ContactForm({
       </Field>
       <Field label="Teléfono o email" name="contact" error={state.errors?.contact}>
         <input id="contact" name="contact" type="text" autoComplete="email" className={inputClass} />
+      </Field>
+      <Field label="Motivo de consulta" name="asunto">
+        <div className="relative">
+          <select
+            id="asunto"
+            name="asunto"
+            defaultValue={topic ?? ""}
+            className={`${inputClass} appearance-none pr-9`}
+          >
+            <option value="">Otro / no especificado</option>
+            {options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+          <IconChevronDown className="pointer-events-none absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-grafito/40" />
+        </div>
       </Field>
       <Field label="Mensaje" name="message" error={state.errors?.message}>
         <textarea

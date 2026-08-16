@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/guards";
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Ingresá un nombre."),
@@ -26,6 +27,12 @@ export async function createProfile(
     return { error: parsed.error.issues[0]?.message ?? "Revisá los campos." };
   }
 
+  try {
+    await requireAdmin();
+  } catch {
+    return { error: "Solo un administrador puede agregar usuarios." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("admin_profiles").insert({
     full_name: parsed.data.fullName,
@@ -42,12 +49,14 @@ export async function createProfile(
 }
 
 export async function toggleProfileActive(id: string, active: boolean) {
+  await requireAdmin();
   const supabase = await createClient();
   await supabase.from("admin_profiles").update({ active }).eq("id", id);
   revalidatePath("/admin/usuarios");
 }
 
 export async function deleteProfile(id: string) {
+  await requireAdmin();
   const supabase = await createClient();
   await supabase.from("admin_profiles").delete().eq("id", id);
   revalidatePath("/admin/usuarios");

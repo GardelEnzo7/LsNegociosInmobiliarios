@@ -150,7 +150,7 @@ export default async function PropertyDetailPage({ params }: { params: Params })
           <p className="font-utility text-[11px] uppercase tracking-[0.16em] text-grafito/45">
             Propiedades Similares
           </p>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {similar.map((item, index) => (
               <Reveal key={item.id} delay={index * 60}>
                 <PropertyCard property={item} />

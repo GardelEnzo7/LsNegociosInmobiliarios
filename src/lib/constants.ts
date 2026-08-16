@@ -40,6 +40,12 @@ export const PROPERTY_TYPE_LABELS: Record<string, string> = {
   oficina: "Oficina",
 };
 
+export const AVAILABILITY_LABELS: Record<string, string> = {
+  reservada: "Reservada",
+  vendida: "Vendida",
+  alquilada: "Alquilada",
+};
+
 export function whatsappLink(message: string) {
   return `https://wa.me/${SITE.whatsappNumber}?text=${encodeURIComponent(message)}`;
 }

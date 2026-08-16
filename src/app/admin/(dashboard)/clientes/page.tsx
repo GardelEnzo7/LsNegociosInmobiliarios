@@ -1,22 +1,22 @@
-import { LeadForm } from "@/components/admin/lead-form";
-import { LeadsList } from "@/components/admin/leads-list";
-import { getAllLeads, getPropertiesForSelect } from "@/lib/data/admin";
+import { ContactForm } from "@/components/admin/contact-form";
+import { ContactsList } from "@/components/admin/contacts-list";
+import { getAllContacts, getPropertiesForSelect } from "@/lib/data/admin";
 
 export default async function AdminClientsPage() {
-  const [leads, properties] = await Promise.all([getAllLeads(), getPropertiesForSelect()]);
+  const [contacts, properties] = await Promise.all([getAllContacts(), getPropertiesForSelect()]);
 
   return (
     <div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">Clientes</h1>
-          <p className="mt-1 text-sm text-zinc-500">{leads.length} en total.</p>
+          <p className="mt-1 text-sm text-zinc-500">{contacts.length} en total.</p>
         </div>
       </div>
 
       <div className="mt-6 max-w-3xl space-y-6">
-        <LeadForm properties={properties} />
-        <LeadsList leads={leads} />
+        <ContactForm properties={properties} />
+        <ContactsList contacts={contacts} />
       </div>
     </div>
   );

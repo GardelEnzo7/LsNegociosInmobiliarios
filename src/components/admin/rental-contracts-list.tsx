@@ -24,8 +24,8 @@ type Contract = {
   expensas_amount: number | null;
   status: string;
   properties: { id: string; title: string; slug: string } | null;
-  owners: { id: string; full_name: string } | null;
-  tenants: { id: string; full_name: string } | null;
+  owner: { id: string; full_name: string } | null;
+  tenant: { id: string; full_name: string } | null;
 };
 
 export function RentalContractsList({ contracts }: { contracts: Contract[] }) {
@@ -65,7 +65,7 @@ function ContractCard({ contract }: { contract: Contract }) {
             {contract.properties?.title ?? "Propiedad eliminada"}
           </Link>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Cliente: {contract.owners?.full_name ?? "—"} · Inquilino: {contract.tenants?.full_name ?? "—"}
+            Cliente: {contract.owner?.full_name ?? "—"} · Inquilino: {contract.tenant?.full_name ?? "—"}
           </p>
           <p className="mt-0.5 text-xs text-zinc-400">
             {contract.start_date} → {contract.end_date ?? "en curso"}

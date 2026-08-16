@@ -9,6 +9,7 @@ const messageSchema = z.object({
   contact: z.string().trim().min(6, "Ingresá un teléfono o email válido."),
   message: z.string().trim().min(10, "Contanos un poco más en el mensaje."),
   propertyId: z.string().uuid().optional().or(z.literal("")),
+  asunto: z.string().trim().optional(),
 });
 
 export type ContactFormState = {
@@ -25,6 +26,7 @@ export async function submitContactMessage(
     contact: formData.get("contact"),
     message: formData.get("message"),
     propertyId: formData.get("propertyId") ?? "",
+    asunto: formData.get("asunto") ?? "",
   });
 
   if (!parsed.success) {
@@ -40,12 +42,13 @@ export async function submitContactMessage(
   }
 
   const supabase = await createClient();
-  const { name, contact, message, propertyId } = parsed.data;
+  const { name, contact, message, propertyId, asunto } = parsed.data;
+  const finalMessage = asunto ? `Motivo: ${asunto}\n\n${message}` : message;
 
   const { error } = await supabase.from("messages").insert({
     name,
     contact,
-    message,
+    message: finalMessage,
     property_id: propertyId ? propertyId : null,
   });
 

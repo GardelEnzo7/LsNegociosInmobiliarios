@@ -1,14 +1,12 @@
 import { Reveal } from "@/components/site/reveal";
-import { IconHome, IconPortrait } from "@/components/site/icons";
+import { IconPortrait } from "@/components/site/icons";
+import { PropertyCardCompact } from "@/components/site/property-card";
+import { getClosedProperties } from "@/lib/data/properties";
 import { SITE } from "@/lib/constants";
 
-const SALE_HIGHLIGHTS = [
-  { label: "Casa en Fisherton", operation: "Venta cerrada" },
-  { label: "Departamento en Pichincha", operation: "Venta cerrada" },
-  { label: "PH en Echesortu", operation: "Alquiler gestionado" },
-];
+export async function OwnerShowcase() {
+  const closed = await getClosedProperties(3);
 
-export function OwnerShowcase() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 sm:px-10">
       <Reveal className="text-center">
@@ -44,28 +42,19 @@ export function OwnerShowcase() {
             <p className="font-body text-sm text-grafito/60">
               Un vistazo a algunas de las operaciones que fuimos cerrando.
             </p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              {SALE_HIGHLIGHTS.map((sale, index) => (
-                <div
-                  key={sale.label}
-                  className="group relative aspect-[4/5] overflow-hidden rounded-xl bg-piedra/50"
-                  style={{ opacity: 1 - index * 0.06 }}
-                >
-                  <div className="flex h-full w-full items-center justify-center text-grafito/25">
-                    <IconHome className="h-10 w-10" />
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-grafito-dark/70 to-transparent p-3 pt-8">
-                    <p className="font-utility text-[10px] uppercase tracking-[0.1em] text-blanco-roto/70">
-                      {sale.operation}
-                    </p>
-                    <p className="mt-0.5 font-display text-sm text-blanco-roto">{sale.label}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 font-body text-xs text-grafito/40">
-              Próximamente: fotos reales de ventas y el equipo completo.
-            </p>
+            {closed.length > 0 ? (
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                {closed.map((property) => (
+                  <PropertyCardCompact key={property.id} property={property} />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 flex min-h-[220px] items-center justify-center rounded-2xl bg-piedra/40 p-8 text-center">
+                <p className="max-w-xs font-body text-sm leading-relaxed text-grafito/50">
+                  Pronto vamos a mostrar acá operaciones reales que fuimos cerrando en Rosario.
+                </p>
+              </div>
+            )}
           </div>
         </Reveal>
       </div>

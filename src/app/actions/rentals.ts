@@ -51,21 +51,23 @@ export async function createContract(
   const supabase = await createClient();
 
   const { data: owner, error: ownerError } = await supabase
-    .from("owners")
+    .from("contacts")
     .insert({
       full_name: data.ownerName,
       contact_phone: data.ownerPhone || null,
       contact_email: data.ownerEmail || null,
+      source: "administracion",
     })
     .select("id")
     .single();
 
   const { data: tenant, error: tenantError } = await supabase
-    .from("tenants")
+    .from("contacts")
     .insert({
       full_name: data.tenantName,
       contact_phone: data.tenantPhone || null,
       contact_email: data.tenantEmail || null,
+      source: "administracion",
     })
     .select("id")
     .single();
@@ -73,6 +75,11 @@ export async function createContract(
   if (ownerError || tenantError || !owner || !tenant) {
     return { error: "No se pudo crear la administración." };
   }
+
+  await supabase.from("contact_roles").insert([
+    { contact_id: owner.id, role: "propietario" },
+    { contact_id: tenant.id, role: "inquilino" },
+  ]);
 
   const { error: contractError } = await supabase.from("rental_contracts").insert({
     property_id: data.propertyId,

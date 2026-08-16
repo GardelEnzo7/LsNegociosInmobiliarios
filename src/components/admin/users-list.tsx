@@ -10,6 +10,7 @@ type Profile = {
   email: string;
   role: string;
   active: boolean;
+  user_id: string | null;
 };
 
 const initialState: ProfileFormState = {};
@@ -52,10 +53,14 @@ export function UsersList({ profiles }: { profiles: Profile[] }) {
           </button>
         </form>
         {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
-        <p className="mt-3 text-xs text-zinc-400">
-          Este registro es organizativo (a quién se le atribuyen leads y propiedades). El único
-          acceso real de login al panel sigue siendo la cuenta demo.
-        </p>
+        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700">
+          Agregar acá a alguien solo crea su perfil (nombre, rol, a qué se le atribuyen propiedades y
+          consultas). Para que pueda entrar de verdad al panel: 1) creá su cuenta en el{" "}
+          <span className="font-medium">Dashboard de Supabase → Authentication → Users → Add user</span>{" "}
+          con este mismo email, y 2) la primera vez que inicie sesión, su cuenta se vincula sola a este
+          perfil. Un Administrador tiene acceso a todo; un Agente no puede gestionar otros usuarios ni
+          eliminar propiedades o clientes.
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
@@ -67,6 +72,7 @@ export function UsersList({ profiles }: { profiles: Profile[] }) {
               <tr>
                 <th className="px-4 py-3 font-medium">Nombre</th>
                 <th className="px-4 py-3 font-medium">Rol</th>
+                <th className="px-4 py-3 font-medium">Acceso</th>
                 <th className="px-4 py-3 font-medium">Activo</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
@@ -93,6 +99,17 @@ function ProfileRow({ profile }: { profile: Profile }) {
         <p className="text-xs text-zinc-500">{profile.email}</p>
       </td>
       <td className="px-4 py-3 capitalize text-zinc-700">{profile.role}</td>
+      <td className="px-4 py-3">
+        {profile.user_id ? (
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+            Cuenta vinculada
+          </span>
+        ) : (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-500">
+            Pendiente
+          </span>
+        )}
+      </td>
       <td className="px-4 py-3">
         <button
           type="button"

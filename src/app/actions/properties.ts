@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { logActivity } from "@/lib/admin/activity";
+import { AVAILABILITY_LABELS } from "@/lib/admin/constants";
 
 const propertySchema = z.object({
   title: z.string().trim().min(3),
@@ -105,6 +107,16 @@ export async function createProperty(
       .insert(imageUrls.map((url, index) => ({ property_id: property.id, url, position: index })));
   }
 
+  await logActivity(
+    {
+      entityType: "property",
+      entityId: property.id,
+      eventType: "property_created",
+      description: `Se creó la propiedad "${parsed.title}"`,
+    },
+    supabase,
+  );
+
   revalidatePath("/admin/propiedades");
   revalidatePath("/propiedades");
   revalidatePath("/");
@@ -129,6 +141,13 @@ export async function updateProperty(
     .filter(Boolean);
 
   const supabase = await createClient();
+
+  const { data: before } = await supabase
+    .from("properties")
+    .select("price, availability")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("properties")
     .update({
@@ -162,6 +181,53 @@ export async function updateProperty(
       .insert(imageUrls.map((url, index) => ({ property_id: id, url, position: index })));
   }
 
+  if (before && before.price !== parsed.price) {
+    await logActivity(
+      {
+        entityType: "property",
+        entityId: id,
+        eventType: "price_changed",
+        description: `Precio actualizado de ${before.price} a ${parsed.price} en "${parsed.title}"`,
+        metadata: { from: before.price, to: parsed.price },
+      },
+      supabase,
+    );
+  } else {
+    await logActivity(
+      {
+        entityType: "property",
+        entityId: id,
+        eventType: "property_updated",
+        description: `Se editó la propiedad "${parsed.title}"`,
+      },
+      supabase,
+    );
+  }
+
+  if (before && before.availability !== parsed.availability) {
+    await logActivity(
+      {
+        entityType: "property",
+        entityId: id,
+        eventType: "availability_changed",
+        description: `Estado comercial de "${parsed.title}" pasó a ${AVAILABILITY_LABELS[parsed.availability]}`,
+        metadata: { from: before.availability, to: parsed.availability },
+      },
+      supabase,
+    );
+    if (parsed.availability === "vendida" || parsed.availability === "alquilada") {
+      await logActivity(
+        {
+          entityType: "property",
+          entityId: id,
+          eventType: "deal_closed",
+          description: `Operación cerrada: "${parsed.title}" (${AVAILABILITY_LABELS[parsed.availability]})`,
+        },
+        supabase,
+      );
+    }
+  }
+
   revalidatePath("/admin/propiedades");
   revalidatePath("/propiedades");
   revalidatePath(`/propiedades/${parsed.slug}`);
@@ -186,7 +252,38 @@ export async function toggleFeatured(id: string, featured: boolean) {
 
 export async function updateAvailability(id: string, availability: string) {
   const supabase = await createClient();
+  const { data: before } = await supabase
+    .from("properties")
+    .select("title, availability")
+    .eq("id", id)
+    .maybeSingle();
+
   await supabase.from("properties").update({ availability }).eq("id", id);
+
+  if (before && before.availability !== availability) {
+    await logActivity(
+      {
+        entityType: "property",
+        entityId: id,
+        eventType: "availability_changed",
+        description: `Estado comercial de "${before.title}" pasó a ${AVAILABILITY_LABELS[availability]}`,
+        metadata: { from: before.availability, to: availability },
+      },
+      supabase,
+    );
+    if (availability === "vendida" || availability === "alquilada") {
+      await logActivity(
+        {
+          entityType: "property",
+          entityId: id,
+          eventType: "deal_closed",
+          description: `Operación cerrada: "${before.title}" (${AVAILABILITY_LABELS[availability]})`,
+        },
+        supabase,
+      );
+    }
+  }
+
   revalidatePath("/admin/propiedades");
   revalidatePath("/propiedades");
 }

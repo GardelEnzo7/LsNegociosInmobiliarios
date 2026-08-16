@@ -9,15 +9,17 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/admin", label: "Resumen" },
   { href: "/admin/propiedades", label: "Propiedades" },
+  { href: "/admin/visitas", label: "Visitas" },
   { href: "/admin/administraciones", label: "Administraciones" },
   { href: "/admin/clientes", label: "Clientes" },
-  { href: "/admin/mensajes", label: "Mensajes" },
+  { href: "/admin/mensajes", label: "Consultas" },
   { href: "/admin/estadisticas", label: "Estadísticas" },
-  { href: "/admin/usuarios", label: "Usuarios" },
+  { href: "/admin/usuarios", label: "Usuarios", adminOnly: true },
 ];
 
-export function Sidebar({ unreadCount }: { unreadCount: number }) {
+export function Sidebar({ unreadCount = 0, role }: { unreadCount?: number; role?: string | null }) {
   const pathname = usePathname();
+  const visibleLinks = LINKS.filter((link) => !link.adminOnly || role === "admin");
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-zinc-200 bg-white">
@@ -29,7 +31,7 @@ export function Sidebar({ unreadCount }: { unreadCount: number }) {
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {LINKS.map((link) => {
+        {visibleLinks.map((link) => {
           const active = link.href === "/admin" ? pathname === "/admin" : pathname.startsWith(link.href);
           return (
             <Link

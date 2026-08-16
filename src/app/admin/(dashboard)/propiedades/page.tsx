@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { PropertiesTable } from "@/components/admin/properties-table";
 import { getAllProperties } from "@/lib/data/admin";
+import { getCurrentAdminRole } from "@/lib/supabase/guards";
 
 export default async function AdminPropertiesPage() {
-  const properties = await getAllProperties();
+  const [properties, role] = await Promise.all([getAllProperties(), getCurrentAdminRole()]);
 
   return (
     <div>
@@ -21,7 +22,7 @@ export default async function AdminPropertiesPage() {
       </div>
 
       <div className="mt-6">
-        <PropertiesTable properties={properties} />
+        <PropertiesTable properties={properties} canDelete={role === "admin"} />
       </div>
     </div>
   );

@@ -72,6 +72,19 @@ export async function getSimilarProperties(property: Property): Promise<Property
   return (data ?? []).map(sortImages);
 }
 
+export async function getClosedProperties(limit = 3): Promise<PropertyWithImages[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select("*, property_images(*)")
+    .eq("status", "published")
+    .in("availability", ["vendida", "alquilada"])
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map(sortImages);
+}
+
 export async function getNeighborhoods(): Promise<string[]> {
   const supabase = await createClient();
   const { data } = await supabase

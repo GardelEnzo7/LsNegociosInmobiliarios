@@ -54,7 +54,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
             búsqueda o escribinos y te avisamos apenas surja algo así.
           </p>
         ) : (
-          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <div className="mt-6 grid gap-x-6 gap-y-8 sm:grid-cols-2">
             {properties.map((property, index) => (
               <Reveal key={property.id} delay={(index % 4) * 60}>
                 <PropertyCard property={property} />
