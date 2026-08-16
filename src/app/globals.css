@@ -1,26 +1,195 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-plata: #f4f5f6;
+  --color-grafito: #2b333d;
+  --color-grafito-dark: #1c2129;
+  --color-piedra: #dde1e5;
+  --color-petroleo: #1f4147;
+  --color-petroleo-dark: #142d31;
+  --color-petroleo-claro: #6fa8ac;
+  --color-blanco-roto: #ffffff;
+  --color-whatsapp: #25d366;
+  --color-whatsapp-dark: #1ebe5a;
+}
+
+:root {
+  /* Strong custom curves per emil-design-eng — the built-in CSS eases read
+     as weak and unintentional. ease-out for anything entering/responding,
+     ease-in-out for on-screen movement. Never ease-in on UI. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-plata: var(--color-plata);
+  --color-grafito: var(--color-grafito);
+  --color-grafito-dark: var(--color-grafito-dark);
+  --color-piedra: var(--color-piedra);
+  --color-petroleo: var(--color-petroleo);
+  --color-petroleo-dark: var(--color-petroleo-dark);
+  --color-petroleo-claro: var(--color-petroleo-claro);
+  --color-blanco-roto: var(--color-blanco-roto);
+  --color-whatsapp: var(--color-whatsapp);
+  --color-whatsapp-dark: var(--color-whatsapp-dark);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-utility: var(--font-utility);
+
+  /* `backwards` (not `both`): applies the "from" keyframe during any
+     animation-delay so staggered entrances don't flash unstyled, but —
+     unlike `both` — releases the transform once the animation ends instead
+     of leaving it applied forever. A permanently-applied `transform`
+     (even an identity translateY(0)) creates a new CSS containing block,
+     which silently breaks any `position: fixed` descendant mounted later
+     (this broke the property gallery lightbox once already). */
+  --animate-fade-up: fade-up 0.6s var(--ease-out) backwards;
+  --animate-crossfade: crossfade 18s ease-in-out infinite;
+  --animate-page-enter: page-enter 0.45s var(--ease-out) backwards;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The page-level entrance: paired with (site)/template.tsx, which remounts
+   on every route change. Kept subtle and quick so it reads as a single
+   transition rather than competing with each section's own Reveal. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes crossfade {
+  0%,
+  28% {
+    opacity: 1;
+  }
+  33%,
+  95% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-plata);
+  color: var(--color-grafito);
+}
+
+::selection {
+  background: var(--color-petroleo);
+  color: var(--color-blanco-roto);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-petroleo-claro);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-color: var(--color-petroleo) var(--color-piedra);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-piedra);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-petroleo);
+  border-radius: 999px;
+  border: 2px solid var(--color-piedra);
+}
+
+/* Scroll-reveal: paired with the Reveal client component. The Reveal
+   component only adds `.reveal-hidden` once JS has confirmed the element
+   starts outside the viewport, so content stays visible by default if a
+   script fails to load. */
+.reveal-hidden {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+}
+.reveal-hidden.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Leaflet ships its own stylesheet import per-component; this resets the
+   default marker/attribution styling to sit flush inside our rounded map
+   containers instead of floating with Leaflet's default chrome. */
+.leaflet-container {
+  font-family: var(--font-body);
+  background: var(--color-piedra);
+}
+
+/* Leaflet popup: strip the library's default padded/rounded chrome so our
+   own property-card markup (image, price, specs) controls the whole shape. */
+.property-popup .leaflet-popup-content-wrapper {
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 0;
+  box-shadow: 0 16px 40px -12px rgba(28, 33, 41, 0.4);
+}
+.property-popup .leaflet-popup-content {
+  width: 220px !important;
+  margin: 0;
+}
+.property-popup .leaflet-popup-tip {
+  background: var(--color-blanco-roto);
+}
+.property-popup .leaflet-popup-close-button {
+  z-index: 10;
+  color: var(--color-blanco-roto) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Native number-input spinner arrows read as generic browser chrome next to
+   the custom-styled selects beside them — hide them, keep plain digit entry. */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-hidden {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
