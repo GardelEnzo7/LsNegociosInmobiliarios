@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { PropertyImage } from "@/components/site/property-image";
 
 type GalleryImage = { id: string; url: string; alt: string | null };
 
@@ -80,11 +80,11 @@ export function PropertyGallery({ images, title }: { images: GalleryImage[]; tit
           className="relative block aspect-[4/3] w-full touch-pan-y select-none overflow-hidden rounded-2xl bg-piedra"
           aria-label="Ampliar foto"
         >
-          <Image
+          <PropertyImage
             src={images[mobileIndex].url}
             alt={images[mobileIndex].alt || title}
             fill
-            sizes="100vw"
+            sizes="calc(100vw - 48px)"
             className="object-cover"
             priority
           />
@@ -115,11 +115,11 @@ export function PropertyGallery({ images, title }: { images: GalleryImage[]; tit
           )}
           aria-label="Ampliar foto principal"
         >
-          <Image
+          <PropertyImage
             src={images[0].url}
             alt={images[0].alt || title}
             fill
-            sizes="(min-width: 1024px) 45vw, 100vw"
+            sizes="(min-width: 1280px) 620px, (min-width: 640px) 48vw, calc(100vw - 48px)"
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
             priority
           />
@@ -142,11 +142,11 @@ export function PropertyGallery({ images, title }: { images: GalleryImage[]; tit
               )}
               aria-label={`Ver foto ${i + 2}`}
             >
-              <Image
+              <PropertyImage
                 src={image.url}
                 alt={image.alt || title}
                 fill
-                sizes="20vw"
+                sizes="(min-width: 1280px) 310px, (min-width: 640px) 24vw, calc(100vw - 48px)"
                 className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
               />
               {isLast ? (
@@ -246,7 +246,14 @@ function Lightbox({
           className="relative mx-auto h-full max-w-4xl select-none touch-pan-y"
           onClick={(event) => event.stopPropagation()}
         >
-          <Image src={image.url} alt={image.alt || title} fill sizes="90vw" className="object-contain" priority />
+          <PropertyImage
+            src={image.url}
+            alt={image.alt || title}
+            fill
+            sizes="(min-width: 896px) 896px, calc(100vw - 32px)"
+            className="object-contain"
+            priority
+          />
         </div>
 
         <button
@@ -281,7 +288,7 @@ function Lightbox({
                   i === index ? "opacity-100 ring-2 ring-petroleo-claro" : "opacity-40 hover:opacity-80",
                 )}
               >
-                <Image src={thumb.url} alt="" fill sizes="96px" className="object-cover" />
+                <PropertyImage src={thumb.url} alt="" fill sizes="(min-width: 640px) 96px, 80px" className="object-cover" />
               </button>
             ))}
           </div>

@@ -1,45 +1,129 @@
 "use client";
 
-import { useActionState } from "react";
-import { createProperty, updateProperty, type PropertyFormState } from "@/app/actions/properties";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  createPropertyAction,
+  updatePropertyAction,
+  syncPropertyImages,
+  type PropertyFormState,
+} from "@/app/actions/properties";
 import { ORIENTATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { Panel } from "@/components/admin/ui/panel";
 import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
-import { PropertyImagesManager } from "@/components/admin/property-images-manager";
+import { PropertyImagesManager, type PropertyImagesManagerHandle } from "@/components/admin/property-images-manager";
 import { PropertyLocationFields } from "@/components/admin/property-location-fields";
 import type { PropertyWithImages } from "@/lib/data/properties";
+import { cn, slugify } from "@/lib/utils";
 
 const initialState: PropertyFormState = {};
 
 export function PropertyForm({ property }: { property?: PropertyWithImages }) {
-  const action = property ? updateProperty.bind(null, property.id) : createProperty;
+  const action = property ? updatePropertyAction.bind(null, property.id) : createPropertyAction;
   const [state, formAction, pending] = useActionState(action, initialState);
+  const router = useRouter();
+  const imagesRef = useRef<PropertyImagesManagerHandle>(null);
+  const [finalizing, setFinalizing] = useState(false);
+  const [finalizeError, setFinalizeError] = useState<string | null>(null);
+
+  // Slug auto-generation: mirrors the title until the admin edits the slug
+  // by hand, at which point we stop touching it — editing an existing
+  // property's slug is treated as already "customized" from the start so a
+  // title tweak never silently changes a live URL.
+  const [slug, setSlug] = useState(property?.slug ?? "");
+  const slugEditedRef = useRef(Boolean(property));
+
+  // Base property fields are saved by the server action above. Once that
+  // succeeds we know the property id and switch to the client-driven step:
+  // upload any new photos straight to Supabase Storage (bytes never touch
+  // the Netlify function), then persist their URLs as property_images rows,
+  // then navigate away. This effect re-runs on every successful submission
+  // (each one produces a new `state` object), covering both create and edit.
+  useEffect(() => {
+    if (!state.propertyId) return;
+    let cancelled = false;
+
+    (async () => {
+      setFinalizeError(null);
+      setFinalizing(true);
+      try {
+        const images = await imagesRef.current!.commit(state.propertyId!);
+        if (cancelled) return;
+
+        const result = await syncPropertyImages(state.propertyId!, images);
+        if (cancelled) return;
+        if (result.error) {
+          setFinalizeError(result.error);
+          setFinalizing(false);
+          return;
+        }
+
+        router.push("/admin/propiedades");
+        router.refresh();
+      } catch {
+        if (!cancelled) {
+          setFinalizeError("No se pudieron guardar las fotos.");
+          setFinalizing(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  // Server-side validation (zod, in `savePropertyBase`) stays authoritative
+  // — this only reflects its result back onto the exact input that failed,
+  // without ever losing what the admin already typed (the form never
+  // unmounts/resets on a failed submission, so every other field's value —
+  // and any staged photos — survive as-is).
+  const fieldMessage = (key: string) => state.fieldMessages?.[key];
+  const fieldInputClass = (key: string, base = inputClass) =>
+    cn(base, fieldMessage(key) && "border-terracota focus:border-terracota");
 
   return (
     <form action={formAction} className="space-y-4">
       <Panel title="Datos generales">
         <div className="space-y-4">
-          <FormField label="Título" htmlFor="title">
-            <input id="title" name="title" required defaultValue={property?.title} className={inputClass} />
+          <FormField label="Título" htmlFor="title" error={fieldMessage("title")}>
+            <input
+              id="title"
+              name="title"
+              required
+              defaultValue={property?.title}
+              onChange={(event) => {
+                if (!slugEditedRef.current) setSlug(slugify(event.target.value));
+              }}
+              aria-invalid={Boolean(fieldMessage("title"))}
+              className={fieldInputClass("title")}
+            />
           </FormField>
-          <FormField label="Slug (URL)" htmlFor="slug">
+          <FormField label="Slug (URL)" htmlFor="slug" error={fieldMessage("slug")}>
             <input
               id="slug"
               name="slug"
               required
-              defaultValue={property?.slug}
+              value={slug}
+              onChange={(event) => {
+                slugEditedRef.current = true;
+                setSlug(event.target.value);
+              }}
               placeholder="casa-fisherton-jardin"
-              className={inputClass}
+              aria-invalid={Boolean(fieldMessage("slug"))}
+              className={fieldInputClass("slug")}
             />
           </FormField>
-          <FormField label="Descripción" htmlFor="description">
+          <FormField label="Descripción" htmlFor="description" error={fieldMessage("description")}>
             <textarea
               id="description"
               name="description"
               required
               rows={4}
               defaultValue={property?.description}
-              className={inputClass}
+              aria-invalid={Boolean(fieldMessage("description"))}
+              className={fieldInputClass("description")}
             />
           </FormField>
         </div>
@@ -66,8 +150,17 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
               </select>
             </SelectShell>
           </FormField>
-          <FormField label="Precio" htmlFor="price">
-            <input id="price" name="price" type="number" min={0} required defaultValue={property?.price} className={inputClass} />
+          <FormField label="Precio" htmlFor="price" error={fieldMessage("price")}>
+            <input
+              id="price"
+              name="price"
+              type="number"
+              min={0}
+              required
+              defaultValue={property?.price}
+              aria-invalid={Boolean(fieldMessage("price"))}
+              className={fieldInputClass("price")}
+            />
           </FormField>
           <FormField label="Moneda" htmlFor="currency">
             <SelectShell>
@@ -87,6 +180,12 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
           initialLat={property?.lat ?? null}
           initialLng={property?.lng ?? null}
           disabled={pending}
+          fieldMessages={{
+            neighborhood: fieldMessage("neighborhood"),
+            address: fieldMessage("address"),
+            lat: fieldMessage("lat"),
+            lng: fieldMessage("lng"),
+          }}
         />
       </Panel>
 
@@ -104,11 +203,28 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
           <FormField label="Baños" htmlFor="bathrooms">
             <input id="bathrooms" name="bathrooms" type="number" min={0} defaultValue={property?.bathrooms ?? ""} className={inputClass} />
           </FormField>
-          <FormField label="Año de construcción" htmlFor="yearBuilt">
-            <input id="yearBuilt" name="yearBuilt" type="number" min={1800} max={2100} defaultValue={property?.year_built ?? ""} className={inputClass} />
+          <FormField label="Año de construcción" htmlFor="yearBuilt" error={fieldMessage("yearBuilt")}>
+            <input
+              id="yearBuilt"
+              name="yearBuilt"
+              type="number"
+              min={1800}
+              max={2100}
+              defaultValue={property?.year_built ?? ""}
+              aria-invalid={Boolean(fieldMessage("yearBuilt"))}
+              className={fieldInputClass("yearBuilt")}
+            />
           </FormField>
-          <FormField label="Expensas (ARS/mes)" htmlFor="expenses">
-            <input id="expenses" name="expenses" type="number" min={0} defaultValue={property?.expenses ?? ""} className={inputClass} />
+          <FormField label="Expensas (ARS/mes)" htmlFor="expenses" error={fieldMessage("expenses")}>
+            <input
+              id="expenses"
+              name="expenses"
+              type="number"
+              min={0}
+              defaultValue={property?.expenses ?? ""}
+              aria-invalid={Boolean(fieldMessage("expenses"))}
+              className={fieldInputClass("expenses")}
+            />
           </FormField>
           <FormField label="Orientación" htmlFor="orientation">
             <SelectShell>
@@ -156,17 +272,29 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
 
       <Panel title="SEO de la propiedad (opcional)">
         <div className="space-y-4">
-          <FormField label="Título SEO (máx. 70 caracteres)" htmlFor="metaTitle">
-            <input id="metaTitle" name="metaTitle" maxLength={70} defaultValue={property?.meta_title ?? ""} className={inputClass} />
+          <FormField label="Título SEO (máx. 70 caracteres)" htmlFor="metaTitle" error={fieldMessage("metaTitle")}>
+            <input
+              id="metaTitle"
+              name="metaTitle"
+              maxLength={70}
+              defaultValue={property?.meta_title ?? ""}
+              aria-invalid={Boolean(fieldMessage("metaTitle"))}
+              className={fieldInputClass("metaTitle")}
+            />
           </FormField>
-          <FormField label="Descripción SEO (máx. 160 caracteres)" htmlFor="metaDescription">
+          <FormField
+            label="Descripción SEO (máx. 160 caracteres)"
+            htmlFor="metaDescription"
+            error={fieldMessage("metaDescription")}
+          >
             <textarea
               id="metaDescription"
               name="metaDescription"
               rows={2}
               maxLength={160}
               defaultValue={property?.meta_description ?? ""}
-              className={inputClass}
+              aria-invalid={Boolean(fieldMessage("metaDescription"))}
+              className={fieldInputClass("metaDescription")}
             />
           </FormField>
           <p className="font-body text-xs text-grafito/45">
@@ -177,6 +305,7 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
 
       <Panel title="Fotos">
         <PropertyImagesManager
+          ref={imagesRef}
           initialImages={property?.property_images.map((img) => ({ id: img.id, url: img.url, alt: img.alt })) ?? []}
           disabled={pending}
         />
@@ -215,13 +344,14 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
       </Panel>
 
       {state.error ? <p className="text-sm text-terracota">{state.error}</p> : null}
+      {finalizeError ? <p className="text-sm text-terracota">{finalizeError}</p> : null}
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || finalizing}
         className="rounded-lg bg-grafito px-6 py-3 text-sm font-medium text-blanco-roto transition-[background-color,transform] duration-200 ease-out hover:bg-grafito-dark active:scale-[0.98] disabled:opacity-60"
       >
-        {pending ? "Guardando y subiendo fotos…" : property ? "Guardar cambios" : "Publicar propiedad"}
+        {pending ? "Guardando…" : finalizing ? "Guardando fotos…" : property ? "Guardar cambios" : "Publicar propiedad"}
       </button>
     </form>
   );

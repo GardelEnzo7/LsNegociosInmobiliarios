@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { PropertyWithImages } from "@/lib/data/properties";
 import { AVAILABILITY_LABELS, OPERATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { cn, formatPrice } from "@/lib/utils";
 import { IconArea, IconBath, IconBed, IconPin } from "@/components/site/icons";
+import { PropertyImage } from "@/components/site/property-image";
 
 export function PropertyCard({ property }: { property: PropertyWithImages }) {
   const cover = property.property_images[0];
@@ -31,7 +31,7 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
 
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-piedra">
         {cover ? (
-          <Image
+          <PropertyImage
             src={cover.url}
             alt={cover.alt || property.title}
             fill
@@ -99,7 +99,7 @@ export function PropertyCardCompact({ property }: { property: PropertyWithImages
       className="group relative block aspect-[4/5] overflow-hidden rounded-2xl bg-piedra/40 ring-1 ring-grafito/5 transition-shadow duration-500 ease-out hover:shadow-[0_16px_32px_-14px_rgba(28,33,41,0.25)]"
     >
       {cover ? (
-        <Image
+        <PropertyImage
           src={cover.url}
           alt={cover.alt || property.title}
           fill

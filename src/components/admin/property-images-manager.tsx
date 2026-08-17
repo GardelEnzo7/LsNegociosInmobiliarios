@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import Image from "next/image";
-import { MAX_IMAGE_BYTES } from "@/lib/admin/property-images";
+import { ImageUploadError, MAX_IMAGE_BYTES, uploadPropertyImage } from "@/lib/admin/property-images";
 import { ImageOptimizeError, optimizeImageFile } from "@/lib/admin/image-optimize";
+import { createClient } from "@/lib/supabase/client";
+import { mapWithConcurrency } from "@/lib/admin/upload-queue";
 import { cn } from "@/lib/utils";
 
 // Hint for the OS file picker only — actual validation happens by trying to
@@ -11,48 +13,76 @@ import { cn } from "@/lib/utils";
 // through opportunistically on browsers that can open it.
 const ACCEPT_ATTR = "image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif,.heic,.heif";
 
+// Cap on simultaneous browser→Supabase Storage uploads. Keeps a 10-15 photo
+// batch from opening that many parallel connections at once while still
+// uploading well ahead of one-at-a-time.
+const UPLOAD_CONCURRENCY = 3;
+
 type ImageItem = {
   key: string;
   url: string;
   alt: string;
   file?: File;
   previewUrl: string;
+  status: "idle" | "uploading" | "error" | "done";
+  error?: string;
 };
 
-export function PropertyImagesManager({
-  initialImages,
-  disabled = false,
-}: {
-  initialImages: { id: string; url: string; alt: string }[];
-  disabled?: boolean;
-}) {
+export type PropertyImagesManagerHandle = {
+  /**
+   * Uploads every not-yet-uploaded file directly to Supabase Storage (max
+   * `UPLOAD_CONCURRENCY` at a time) and resolves with the final ordered
+   * `{ url, alt }` list once nothing is left pending or failed. If any
+   * upload fails, the promise stays pending — the user resolves it by
+   * clicking "Reintentar" (which re-runs this same step) or "Continuar sin
+   * estas fotos" (which drops the failed items and resolves immediately)
+   * inside this component.
+   */
+  commit(propertyId: string): Promise<{ url: string; alt: string }[]>;
+};
+
+export const PropertyImagesManager = forwardRef<
+  PropertyImagesManagerHandle,
+  { initialImages: { id: string; url: string; alt: string }[]; disabled?: boolean }
+>(function PropertyImagesManager({ initialImages, disabled = false }, ref) {
   const [items, setItems] = useState<ImageItem[]>(
-    initialImages.map((img) => ({ key: img.id, url: img.url, alt: img.alt, previewUrl: img.url })),
+    initialImages.map((img) => ({
+      key: img.id,
+      url: img.url,
+      alt: img.alt,
+      previewUrl: img.url,
+      status: "done",
+    })),
   );
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [processing, setProcessing] = useState<{ done: number; total: number } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const pickerId = useId();
-  const isBusy = disabled || processing !== null;
 
-  // Keep the hidden multi-file input's FileList in sync with `items` so the
-  // native form submission carries exactly the staged new files, in order.
-  useEffect(() => {
-    if (!fileInputRef.current) return;
-    const dt = new DataTransfer();
-    for (const item of items) {
-      if (item.file) dt.items.add(item.file);
-    }
-    fileInputRef.current.files = dt.files;
-  }, [items]);
+  const itemsRef = useRef(items);
+  const commitRef = useRef<{ propertyId: string; resolve: (v: { url: string; alt: string }[]) => void } | null>(null);
+
+  const isBusy = disabled || processing !== null || uploadProgress !== null;
+  const hasFailedUploads = items.some((item) => item.status === "error");
+
+  /** Every mutation goes through this so `itemsRef` is always in sync with
+   * the latest state at the point control returns to `commit`/`runCommitStep` —
+   * those run inside promise chains where a plain `useEffect` sync would lag
+   * a tick behind. */
+  const updateItems = useCallback((updater: (current: ImageItem[]) => ImageItem[]) => {
+    setItems((current) => {
+      const next = updater(current);
+      itemsRef.current = next;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
-      for (const item of items) {
+      for (const item of itemsRef.current) {
         if (item.file) URL.revokeObjectURL(item.previewUrl);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handlePick(fileList: FileList | null) {
@@ -84,6 +114,7 @@ export function PropertyImagesManager({
             alt: "",
             file: optimized,
             previewUrl: URL.createObjectURL(optimized),
+            status: "idle",
           });
         }
       } catch (error) {
@@ -94,12 +125,12 @@ export function PropertyImagesManager({
     }
 
     setFileErrors(errors);
-    setItems((current) => [...current, ...next]);
+    updateItems((current) => [...current, ...next]);
     setProcessing(null);
   }
 
   function removeItem(key: string) {
-    setItems((current) => {
+    updateItems((current) => {
       const target = current.find((item) => item.key === key);
       if (target?.file) URL.revokeObjectURL(target.previewUrl);
       return current.filter((item) => item.key !== key);
@@ -107,7 +138,7 @@ export function PropertyImagesManager({
   }
 
   function move(key: string, direction: -1 | 1) {
-    setItems((current) => {
+    updateItems((current) => {
       const index = current.findIndex((item) => item.key === key);
       const target = index + direction;
       if (index < 0 || target < 0 || target >= current.length) return current;
@@ -118,7 +149,7 @@ export function PropertyImagesManager({
   }
 
   function setAsCover(key: string) {
-    setItems((current) => {
+    updateItems((current) => {
       const index = current.findIndex((item) => item.key === key);
       if (index <= 0) return current;
       const next = [...current];
@@ -129,24 +160,100 @@ export function PropertyImagesManager({
   }
 
   function updateAlt(key: string, alt: string) {
-    setItems((current) => current.map((item) => (item.key === key ? { ...item, alt } : item)));
+    updateItems((current) => current.map((item) => (item.key === key ? { ...item, alt } : item)));
   }
 
-  const manifest = items.map((item) => ({
-    url: item.file ? null : item.url,
-    alt: item.alt,
-    isNew: Boolean(item.file),
-  }));
+  /** Uploads every item that still has a `file` and isn't already `done`,
+   * with at most `UPLOAD_CONCURRENCY` in flight. A per-file failure marks
+   * that item `error` and moves on — it never aborts the others. */
+  const uploadPending = useCallback(async (propertyId: string) => {
+    const pending = itemsRef.current.filter((item) => item.file && item.status !== "done");
+    if (pending.length === 0) return;
+
+    updateItems((current) =>
+      current.map((item) => (item.file && item.status !== "done" ? { ...item, status: "uploading", error: undefined } : item)),
+    );
+
+    let doneCount = 0;
+    setUploadProgress({ done: 0, total: pending.length });
+
+    const supabase = createClient();
+
+    await mapWithConcurrency(pending, UPLOAD_CONCURRENCY, async (item) => {
+      try {
+        const url = await uploadPropertyImage(supabase, propertyId, item.file!);
+        updateItems((current) =>
+          current.map((it) => (it.key === item.key ? { ...it, url, status: "done", error: undefined } : it)),
+        );
+      } catch (error) {
+        const message =
+          error instanceof ImageUploadError ? error.message : `"${item.file!.name}": no se pudo subir.`;
+        updateItems((current) => current.map((it) => (it.key === item.key ? { ...it, status: "error", error: message } : it)));
+      } finally {
+        doneCount += 1;
+        setUploadProgress({ done: doneCount, total: pending.length });
+      }
+    });
+
+    setUploadProgress(null);
+  }, [updateItems]);
+
+  const runCommitStep = useCallback(async () => {
+    const ctx = commitRef.current;
+    if (!ctx) return;
+
+    await uploadPending(ctx.propertyId);
+
+    const settled = itemsRef.current;
+    if (settled.some((item) => item.status === "error")) {
+      // Leave the promise pending — the "Reintentar" / "Continuar sin estas
+      // fotos" buttons below call back into this function to unblock it.
+      return;
+    }
+
+    commitRef.current = null;
+    ctx.resolve(settled.filter((item) => item.url).map((item) => ({ url: item.url, alt: item.alt })));
+  }, [uploadPending]);
+
+  function retryFailed() {
+    void runCommitStep();
+  }
+
+  function discardFailed() {
+    updateItems((current) => {
+      for (const item of current) {
+        if (item.status === "error" && item.file) URL.revokeObjectURL(item.previewUrl);
+      }
+      return current.filter((item) => item.status !== "error");
+    });
+    void runCommitStep();
+  }
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      commit(propertyId: string) {
+        return new Promise<{ url: string; alt: string }[]>((resolve) => {
+          commitRef.current = { propertyId, resolve };
+          void runCommitStep();
+        });
+      },
+    }),
+    [runCommitStep],
+  );
 
   return (
     <div>
-      <input type="hidden" name="imagesManifest" value={JSON.stringify(manifest)} readOnly />
-      <input ref={fileInputRef} type="file" name="imageFiles" multiple accept={ACCEPT_ATTR} className="hidden" />
-
       {items.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {items.map((item, index) => (
-            <div key={item.key} className="overflow-hidden rounded-xl border border-grafito/10 bg-plata">
+            <div
+              key={item.key}
+              className={cn(
+                "overflow-hidden rounded-xl border bg-plata",
+                item.status === "error" ? "border-terracota/50" : "border-grafito/10",
+              )}
+            >
               <div className="relative aspect-[4/3] bg-piedra">
                 {item.previewUrl ? (
                   <Image
@@ -163,8 +270,16 @@ export function PropertyImagesManager({
                     Portada
                   </span>
                 ) : null}
+                {item.status === "uploading" ? (
+                  <span className="absolute inset-0 flex items-center justify-center bg-grafito/40">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-blanco-roto/40 border-t-blanco-roto" />
+                  </span>
+                ) : null}
               </div>
               <div className="space-y-2 p-2.5">
+                {item.status === "error" ? (
+                  <p className="text-[11px] leading-snug text-terracota">{item.error ?? "No se pudo subir."}</p>
+                ) : null}
                 <input
                   value={item.alt}
                   onChange={(event) => updateAlt(item.key, event.target.value)}
@@ -230,6 +345,37 @@ export function PropertyImagesManager({
         </p>
       ) : null}
 
+      {uploadProgress ? (
+        <p className="mt-3 flex items-center gap-2 text-xs text-grafito/55">
+          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-grafito/20 border-t-petroleo" />
+          Subiendo fotos {uploadProgress.done} de {uploadProgress.total}…
+        </p>
+      ) : null}
+
+      {hasFailedUploads && !uploadProgress ? (
+        <div className="mt-3 rounded-lg border border-terracota/30 bg-terracota/5 p-3">
+          <p className="text-xs text-terracota">
+            Algunas fotos no se pudieron subir. Reintentá o continuá sin ellas para guardar el resto.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={retryFailed}
+              className="rounded-md bg-terracota px-3 py-1.5 text-xs font-medium text-blanco-roto transition-colors duration-150 ease-out hover:bg-terracota/90"
+            >
+              Reintentar
+            </button>
+            <button
+              type="button"
+              onClick={discardFailed}
+              className="rounded-md border border-grafito/15 px-3 py-1.5 text-xs font-medium text-grafito transition-colors duration-150 ease-out hover:bg-piedra/40"
+            >
+              Continuar sin estas fotos
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {fileErrors.length > 0 ? (
         <ul className="mt-3 space-y-1">
           {fileErrors.map((message) => (
@@ -267,4 +413,4 @@ export function PropertyImagesManager({
       </p>
     </div>
   );
-}
+});

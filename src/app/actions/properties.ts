@@ -1,64 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/admin/activity";
 import { AVAILABILITY_LABELS } from "@/lib/admin/constants";
-import { deleteStorageImagesByUrls, uploadPropertyImage } from "@/lib/admin/property-images";
-import type { Database } from "@/lib/supabase/types";
-
-const imageManifestSchema = z.array(
-  z.object({
-    url: z.string().nullable(),
-    alt: z.string().trim().max(200).default(""),
-    isNew: z.boolean().default(false),
-  }),
-);
-
-/** Resolves the final ordered set of property images from the submitted
- * manifest: existing entries keep their URL, "new" entries are matched
- * positionally against the uploaded files and pushed to Storage. A file
- * that fails validation/upload is skipped rather than aborting the whole
- * property save. */
-async function resolveImages(
-  supabase: SupabaseClient<Database>,
-  propertyId: string,
-  formData: FormData,
-): Promise<{ url: string; alt: string }[]> {
-  const raw = formData.get("imagesManifest");
-  if (typeof raw !== "string" || !raw) return [];
-
-  let manifest: z.infer<typeof imageManifestSchema>;
-  try {
-    manifest = imageManifestSchema.parse(JSON.parse(raw));
-  } catch {
-    return [];
-  }
-
-  const files = formData.getAll("imageFiles").filter((f): f is File => f instanceof File && f.size > 0);
-  let fileIndex = 0;
-  const resolved: { url: string; alt: string }[] = [];
-
-  for (const item of manifest) {
-    if (item.isNew) {
-      const file = files[fileIndex++];
-      if (!file) continue;
-      try {
-        const url = await uploadPropertyImage(supabase, propertyId, file);
-        resolved.push({ url, alt: item.alt });
-      } catch {
-        // Best-effort: skip files that fail validation/upload, keep the rest.
-      }
-    } else if (item.url) {
-      resolved.push({ url: item.url, alt: item.alt });
-    }
-  }
-
-  return resolved;
-}
+import { deleteStorageImagesByPropertyId, deleteStorageImagesByUrls } from "@/lib/admin/property-images";
 
 const propertySchema = z.object({
   title: z.string().trim().min(3),
@@ -95,10 +42,52 @@ const propertySchema = z.object({
   metaDescription: z.string().trim().max(160).optional(),
 });
 
-export type PropertyFormState = { error?: string };
+export type PropertyFormState = {
+  error?: string;
+  propertyId?: string;
+  slug?: string;
+  /** zod field key -> first error message, for highlighting the exact
+   * invalid input client-side (e.g. `{ slug: "Usá minúsculas, números y guiones." }`). */
+  fieldMessages?: Record<string, string>;
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  title: "Título",
+  slug: "Slug (URL)",
+  operation: "Operación",
+  propertyType: "Tipo de propiedad",
+  price: "Precio",
+  currency: "Moneda",
+  neighborhood: "Barrio / zona",
+  address: "Dirección",
+  lat: "Latitud",
+  lng: "Longitud",
+  m2Total: "M² totales",
+  m2Covered: "M² cubiertos",
+  bedrooms: "Dormitorios",
+  bathrooms: "Baños",
+  description: "Descripción",
+  status: "Estado del sitio",
+  availability: "Estado de la operación",
+  yearBuilt: "Año de construcción",
+  expenses: "Expensas",
+  orientation: "Orientación",
+  metaTitle: "Título SEO",
+  metaDescription: "Descripción SEO",
+};
+
+/** Thrown by `parseForm` so `savePropertyBase` can tell the admin exactly
+ * which fields failed, instead of a generic message. Carries only field
+ * keys/labels and zod's own error messages — never raw submitted values —
+ * since the caller renders these directly next to each input. */
+class PropertyValidationError extends Error {
+  constructor(public readonly fields: { key: string; label: string; message: string }[]) {
+    super(`Invalid fields: ${fields.map((f) => f.key).join(", ")}`);
+  }
+}
 
 function parseForm(formData: FormData) {
-  return propertySchema.parse({
+  const result = propertySchema.safeParse({
     title: formData.get("title"),
     slug: formData.get("slug"),
     operation: formData.get("operation"),
@@ -126,152 +115,112 @@ function parseForm(formData: FormData) {
     metaTitle: formData.get("metaTitle") || undefined,
     metaDescription: formData.get("metaDescription") || undefined,
   });
+
+  if (!result.success) {
+    const { fieldErrors } = result.error.flatten();
+    const fields = Object.entries(fieldErrors).map(([key, messages]) => ({
+      key,
+      label: FIELD_LABELS[key] ?? key,
+      message: messages?.[0] ?? "Campo inválido.",
+    }));
+    throw new PropertyValidationError(fields);
+  }
+
+  return result.data;
 }
 
-export async function createProperty(
+/**
+ * Persists the non-image property fields only — no file bytes ever pass
+ * through this action. Returns the property id/slug instead of redirecting,
+ * so the client can run the direct-to-Storage image upload step (see
+ * `PropertyImagesManager`) and call `syncPropertyImages` before navigating
+ * away. Pass `id: null` to create, an existing id to update.
+ */
+async function savePropertyBase(
+  id: string | null,
   _prevState: PropertyFormState,
   formData: FormData,
 ): Promise<PropertyFormState> {
   let parsed;
   try {
     parsed = parseForm(formData);
-  } catch {
+  } catch (err) {
+    if (err instanceof PropertyValidationError && err.fields.length > 0) {
+      return {
+        error: `Revisá estos campos: ${err.fields.map((f) => f.label).join(", ")}.`,
+        fieldMessages: Object.fromEntries(err.fields.map((f) => [f.key, f.message])),
+      };
+    }
     return { error: "Revisá los campos: hay datos inválidos o faltantes." };
   }
 
   const supabase = await createClient();
-  const { data: property, error } = await supabase
-    .from("properties")
-    .insert({
-      title: parsed.title,
-      slug: parsed.slug,
-      operation: parsed.operation,
-      property_type: parsed.propertyType,
-      price: parsed.price,
-      currency: parsed.currency,
-      neighborhood: parsed.neighborhood,
-      address: parsed.address || null,
-      lat: Number.isFinite(parsed.lat) ? parsed.lat : null,
-      lng: Number.isFinite(parsed.lng) ? parsed.lng : null,
-      m2_total: Number.isFinite(parsed.m2Total) ? parsed.m2Total : null,
-      m2_covered: Number.isFinite(parsed.m2Covered) ? parsed.m2Covered : null,
-      bedrooms: Number.isFinite(parsed.bedrooms) ? parsed.bedrooms : null,
-      bathrooms: Number.isFinite(parsed.bathrooms) ? parsed.bathrooms : null,
-      description: parsed.description,
-      status: parsed.status,
-      availability: parsed.availability,
-      featured: parsed.featured ?? false,
-      year_built: Number.isFinite(parsed.yearBuilt) ? parsed.yearBuilt : null,
-      has_garage: parsed.hasGarage ?? false,
-      expenses: Number.isFinite(parsed.expenses) ? parsed.expenses : null,
-      orientation: parsed.orientation || null,
-      credit_eligible: parsed.creditEligible ?? false,
-      professional_use: parsed.professionalUse ?? false,
-      meta_title: parsed.metaTitle || null,
-      meta_description: parsed.metaDescription || null,
-    })
-    .select("id")
-    .single();
 
-  if (error || !property) {
-    return {
-      error: error?.message.includes("duplicate")
-        ? "Ya existe una propiedad con ese slug."
-        : "No se pudo crear la propiedad.",
-    };
-  }
+  const fields = {
+    title: parsed.title,
+    slug: parsed.slug,
+    operation: parsed.operation,
+    property_type: parsed.propertyType,
+    price: parsed.price,
+    currency: parsed.currency,
+    neighborhood: parsed.neighborhood,
+    address: parsed.address || null,
+    lat: Number.isFinite(parsed.lat) ? parsed.lat : null,
+    lng: Number.isFinite(parsed.lng) ? parsed.lng : null,
+    m2_total: Number.isFinite(parsed.m2Total) ? parsed.m2Total : null,
+    m2_covered: Number.isFinite(parsed.m2Covered) ? parsed.m2Covered : null,
+    bedrooms: Number.isFinite(parsed.bedrooms) ? parsed.bedrooms : null,
+    bathrooms: Number.isFinite(parsed.bathrooms) ? parsed.bathrooms : null,
+    description: parsed.description,
+    status: parsed.status,
+    availability: parsed.availability,
+    featured: parsed.featured ?? false,
+    year_built: Number.isFinite(parsed.yearBuilt) ? parsed.yearBuilt : null,
+    has_garage: parsed.hasGarage ?? false,
+    expenses: Number.isFinite(parsed.expenses) ? parsed.expenses : null,
+    orientation: parsed.orientation || null,
+    credit_eligible: parsed.creditEligible ?? false,
+    professional_use: parsed.professionalUse ?? false,
+    meta_title: parsed.metaTitle || null,
+    meta_description: parsed.metaDescription || null,
+  };
 
-  const images = await resolveImages(supabase, property.id, formData);
-  if (images.length > 0) {
-    await supabase.from("property_images").insert(
-      images.map((img, index) => ({ property_id: property.id, url: img.url, alt: img.alt, position: index })),
+  if (!id) {
+    const { data: property, error } = await supabase.from("properties").insert(fields).select("id").single();
+
+    if (error || !property) {
+      return {
+        error: error?.message.includes("duplicate")
+          ? "Ya existe una propiedad con ese slug."
+          : "No se pudo crear la propiedad.",
+      };
+    }
+
+    await logActivity(
+      {
+        entityType: "property",
+        entityId: property.id,
+        eventType: "property_created",
+        description: `Se creó la propiedad "${parsed.title}"`,
+      },
+      supabase,
     );
+
+    revalidatePath("/admin/propiedades");
+    revalidatePath("/propiedades");
+    revalidatePath("/");
+    return { propertyId: property.id, slug: parsed.slug };
   }
 
-  await logActivity(
-    {
-      entityType: "property",
-      entityId: property.id,
-      eventType: "property_created",
-      description: `Se creó la propiedad "${parsed.title}"`,
-    },
-    supabase,
-  );
-
-  revalidatePath("/admin/propiedades");
-  revalidatePath("/propiedades");
-  revalidatePath("/");
-  redirect("/admin/propiedades");
-}
-
-export async function updateProperty(
-  id: string,
-  _prevState: PropertyFormState,
-  formData: FormData,
-): Promise<PropertyFormState> {
-  let parsed;
-  try {
-    parsed = parseForm(formData);
-  } catch {
-    return { error: "Revisá los campos: hay datos inválidos o faltantes." };
-  }
-
-  const supabase = await createClient();
-
-  const [{ data: before }, { data: existingImages }] = await Promise.all([
-    supabase.from("properties").select("price, availability").eq("id", id).maybeSingle(),
-    supabase.from("property_images").select("url").eq("property_id", id),
-  ]);
-
-  const { error } = await supabase
+  const { data: before } = await supabase
     .from("properties")
-    .update({
-      title: parsed.title,
-      slug: parsed.slug,
-      operation: parsed.operation,
-      property_type: parsed.propertyType,
-      price: parsed.price,
-      currency: parsed.currency,
-      neighborhood: parsed.neighborhood,
-      address: parsed.address || null,
-      lat: Number.isFinite(parsed.lat) ? parsed.lat : null,
-      lng: Number.isFinite(parsed.lng) ? parsed.lng : null,
-      m2_total: Number.isFinite(parsed.m2Total) ? parsed.m2Total : null,
-      m2_covered: Number.isFinite(parsed.m2Covered) ? parsed.m2Covered : null,
-      bedrooms: Number.isFinite(parsed.bedrooms) ? parsed.bedrooms : null,
-      bathrooms: Number.isFinite(parsed.bathrooms) ? parsed.bathrooms : null,
-      description: parsed.description,
-      status: parsed.status,
-      availability: parsed.availability,
-      featured: parsed.featured ?? false,
-      year_built: Number.isFinite(parsed.yearBuilt) ? parsed.yearBuilt : null,
-      has_garage: parsed.hasGarage ?? false,
-      expenses: Number.isFinite(parsed.expenses) ? parsed.expenses : null,
-      orientation: parsed.orientation || null,
-      credit_eligible: parsed.creditEligible ?? false,
-      professional_use: parsed.professionalUse ?? false,
-      meta_title: parsed.metaTitle || null,
-      meta_description: parsed.metaDescription || null,
-    })
-    .eq("id", id);
+    .select("price, availability")
+    .eq("id", id)
+    .maybeSingle();
 
+  const { error } = await supabase.from("properties").update(fields).eq("id", id);
   if (error) {
     return { error: "No se pudo actualizar la propiedad." };
-  }
-
-  const images = await resolveImages(supabase, id, formData);
-
-  await supabase.from("property_images").delete().eq("property_id", id);
-  if (images.length > 0) {
-    await supabase.from("property_images").insert(
-      images.map((img, index) => ({ property_id: id, url: img.url, alt: img.alt, position: index })),
-    );
-  }
-
-  const keptUrls = new Set(images.map((img) => img.url));
-  const removedUrls = (existingImages ?? []).map((row) => row.url).filter((url) => !keptUrls.has(url));
-  if (removedUrls.length > 0) {
-    await deleteStorageImagesByUrls(supabase, removedUrls);
   }
 
   if (before && before.price !== parsed.price) {
@@ -325,16 +274,80 @@ export async function updateProperty(
   revalidatePath("/propiedades");
   revalidatePath(`/propiedades/${parsed.slug}`);
   revalidatePath("/");
-  redirect("/admin/propiedades");
+  return { propertyId: id, slug: parsed.slug };
+}
+
+/** Bound directly to `<form action>` for the "new property" form — no
+ * `.bind()` needed since there's no id to close over yet. */
+export async function createPropertyAction(
+  prevState: PropertyFormState,
+  formData: FormData,
+): Promise<PropertyFormState> {
+  return savePropertyBase(null, prevState, formData);
+}
+
+/** The edit form binds this with `.bind(null, property.id)`, same pattern
+ * as the original pre-refactor `updateProperty`. */
+export async function updatePropertyAction(
+  id: string,
+  prevState: PropertyFormState,
+  formData: FormData,
+): Promise<PropertyFormState> {
+  return savePropertyBase(id, prevState, formData);
+}
+
+/**
+ * Writes the final `property_images` rows for a property from a list of
+ * already-uploaded URLs (the browser uploads bytes straight to Storage
+ * before calling this — see `PropertyImagesManager.commit`). Replaces the
+ * full set for the property, same as before, and cleans up Storage objects
+ * for any URL that was removed. Called after `savePropertyBase` succeeds,
+ * for both create and edit.
+ */
+export async function syncPropertyImages(
+  propertyId: string,
+  images: { url: string; alt: string }[],
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+
+  const { data: existingImages } = await supabase
+    .from("property_images")
+    .select("url")
+    .eq("property_id", propertyId);
+
+  const { error: deleteError } = await supabase.from("property_images").delete().eq("property_id", propertyId);
+  if (deleteError) {
+    return { error: "No se pudieron guardar las fotos." };
+  }
+
+  if (images.length > 0) {
+    const { error: insertError } = await supabase.from("property_images").insert(
+      images.map((img, index) => ({ property_id: propertyId, url: img.url, alt: img.alt, position: index })),
+    );
+    if (insertError) {
+      return { error: "No se pudieron guardar las fotos." };
+    }
+  }
+
+  const keptUrls = new Set(images.map((img) => img.url));
+  const removedUrls = (existingImages ?? []).map((row) => row.url).filter((url) => !keptUrls.has(url));
+  if (removedUrls.length > 0) {
+    await deleteStorageImagesByUrls(supabase, removedUrls);
+  }
+
+  revalidatePath("/admin/propiedades");
+  revalidatePath("/propiedades");
+  return {};
 }
 
 export async function deleteProperty(id: string) {
   const supabase = await createClient();
-  const { data: images } = await supabase.from("property_images").select("url").eq("property_id", id);
+  // Explicit, not relied on cascade: guarantees property_images rows are
+  // gone even if the FK's delete behavior ever changes, so no orphaned row
+  // can outlive its property and later 404/400 on the public site.
+  await supabase.from("property_images").delete().eq("property_id", id);
   await supabase.from("properties").delete().eq("id", id);
-  if (images && images.length > 0) {
-    await deleteStorageImagesByUrls(supabase, images.map((row) => row.url));
-  }
+  await deleteStorageImagesByPropertyId(supabase, id);
   revalidatePath("/admin/propiedades");
   revalidatePath("/propiedades");
   revalidatePath("/");

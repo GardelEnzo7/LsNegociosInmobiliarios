@@ -3,6 +3,7 @@
 import { useId, useState, useTransition } from "react";
 import { geocodePropertyAddress } from "@/app/actions/geocode";
 import { FormField, inputClass } from "@/components/admin/ui/form-field";
+import { cn } from "@/lib/utils";
 
 export function PropertyLocationFields({
   initialAddress,
@@ -10,12 +11,14 @@ export function PropertyLocationFields({
   initialLat,
   initialLng,
   disabled,
+  fieldMessages,
 }: {
   initialAddress: string;
   initialNeighborhood: string;
   initialLat: number | null;
   initialLng: number | null;
   disabled?: boolean;
+  fieldMessages?: { neighborhood?: string; address?: string; lat?: string; lng?: string };
 }) {
   const [lat, setLat] = useState(initialLat != null ? String(initialLat) : "");
   const [lng, setLng] = useState(initialLng != null ? String(initialLng) : "");
@@ -55,11 +58,24 @@ export function PropertyLocationFields({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <FormField label="Barrio / zona" htmlFor={neighborhoodId}>
-        <input id={neighborhoodId} name="neighborhood" required defaultValue={initialNeighborhood} className={inputClass} />
+      <FormField label="Barrio / zona" htmlFor={neighborhoodId} error={fieldMessages?.neighborhood}>
+        <input
+          id={neighborhoodId}
+          name="neighborhood"
+          required
+          defaultValue={initialNeighborhood}
+          aria-invalid={Boolean(fieldMessages?.neighborhood)}
+          className={cn(inputClass, fieldMessages?.neighborhood && "border-terracota focus:border-terracota")}
+        />
       </FormField>
-      <FormField label="Dirección" htmlFor={addressId}>
-        <input id={addressId} name="address" defaultValue={initialAddress} className={inputClass} />
+      <FormField label="Dirección" htmlFor={addressId} error={fieldMessages?.address}>
+        <input
+          id={addressId}
+          name="address"
+          defaultValue={initialAddress}
+          aria-invalid={Boolean(fieldMessages?.address)}
+          className={cn(inputClass, fieldMessages?.address && "border-terracota focus:border-terracota")}
+        />
       </FormField>
 
       <div className="sm:col-span-2">
@@ -82,7 +98,7 @@ export function PropertyLocationFields({
         )}
       </div>
 
-      <FormField label="Latitud" htmlFor="lat">
+      <FormField label="Latitud" htmlFor="lat" error={fieldMessages?.lat}>
         <input
           id="lat"
           name="lat"
@@ -94,10 +110,11 @@ export function PropertyLocationFields({
           onChange={(event) => setLat(event.target.value)}
           disabled={disabled}
           placeholder="-32.9468"
-          className={inputClass}
+          aria-invalid={Boolean(fieldMessages?.lat)}
+          className={cn(inputClass, fieldMessages?.lat && "border-terracota focus:border-terracota")}
         />
       </FormField>
-      <FormField label="Longitud" htmlFor="lng">
+      <FormField label="Longitud" htmlFor="lng" error={fieldMessages?.lng}>
         <input
           id="lng"
           name="lng"
@@ -109,7 +126,8 @@ export function PropertyLocationFields({
           onChange={(event) => setLng(event.target.value)}
           disabled={disabled}
           placeholder="-60.6393"
-          className={inputClass}
+          aria-invalid={Boolean(fieldMessages?.lng)}
+          className={cn(inputClass, fieldMessages?.lng && "border-terracota focus:border-terracota")}
         />
       </FormField>
     </div>
