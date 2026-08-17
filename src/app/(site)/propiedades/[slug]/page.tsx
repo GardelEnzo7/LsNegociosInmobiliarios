@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContactForm } from "@/components/site/contact-form";
@@ -5,12 +6,59 @@ import { PropertyGallery } from "@/components/site/property-gallery";
 import { PropertyCard } from "@/components/site/property-card";
 import { Reveal } from "@/components/site/reveal";
 import { TrackPropertyView } from "@/components/site/track-property-view";
-import { IconArea, IconBath, IconBed, IconPin } from "@/components/site/icons";
-import { OPERATION_LABELS, PROPERTY_TYPE_LABELS, SITE, whatsappLink } from "@/lib/constants";
+import { IconArea, IconBath, IconBed, IconKey, IconPin } from "@/components/site/icons";
+import {
+  OPERATION_LABELS,
+  ORIENTATION_LABELS,
+  PROPERTY_TYPE_LABELS,
+  SITE,
+  SITE_URL,
+  whatsappLink,
+} from "@/lib/constants";
 import { getPropertyBySlug, getSimilarProperties } from "@/lib/data/properties";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, jsonLdString } from "@/lib/utils";
 
 type Params = Promise<{ slug: string }>;
+
+const AVAILABILITY_SCHEMA: Record<string, string> = {
+  disponible: "https://schema.org/InStock",
+  reservada: "https://schema.org/LimitedAvailability",
+  vendida: "https://schema.org/SoldOut",
+  alquilada: "https://schema.org/SoldOut",
+};
+
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { slug } = await params;
+  const property = await getPropertyBySlug(slug);
+  if (!property) return {};
+
+  const title =
+    property.meta_title ||
+    `${property.title} en ${OPERATION_LABELS[property.operation]?.toLowerCase() ?? property.operation}, ${property.neighborhood}`;
+  const description =
+    property.meta_description ||
+    (property.description.length > 160 ? `${property.description.slice(0, 157)}…` : property.description);
+  const cover = property.property_images[0]?.url;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/propiedades/${property.slug}` },
+    openGraph: {
+      title,
+      description,
+      url: `/propiedades/${property.slug}`,
+      type: "website",
+      images: cover ? [{ url: cover, width: 1200, height: 900, alt: property.title }] : undefined,
+    },
+    twitter: {
+      card: cover ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: cover ? [cover] : undefined,
+    },
+  };
+}
 
 export default async function PropertyDetailPage({ params }: { params: Params }) {
   const { slug } = await params;
@@ -35,12 +83,60 @@ export default async function PropertyDetailPage({ params }: { params: Params })
     property.bathrooms
       ? { icon: IconBath, value: `${property.bathrooms}`, label: property.bathrooms > 1 ? "baños" : "baño" }
       : null,
+    property.has_garage ? { icon: IconKey, value: "1", label: "cochera" } : null,
   ].filter(Boolean) as { icon: typeof IconBed; value: string; label: string }[];
+
+  const features = [
+    property.orientation ? `Orientación ${ORIENTATION_LABELS[property.orientation] ?? property.orientation}` : null,
+    property.year_built ? `Construida en ${property.year_built}` : null,
+    property.expenses ? `Expensas ${formatPrice(property.expenses, "ARS")}/mes` : null,
+    property.credit_eligible ? "Apto crédito" : null,
+    property.professional_use ? "Apto profesional" : null,
+  ].filter(Boolean) as string[];
 
   const message = `Hola, quiero más información sobre "${property.title}".`;
 
+  const hasCoordinates = typeof property.lat === "number" && typeof property.lng === "number";
+  const openInGoogleMapsUrl = hasCoordinates
+    ? `https://www.google.com/maps/search/?api=1&query=${property.lat},${property.lng}`
+    : null;
+
+  const propertyJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: property.title,
+    description: property.description,
+    url: `${SITE_URL}/propiedades/${property.slug}`,
+    ...(property.property_images.length > 0
+      ? { image: property.property_images.map((img) => img.url) }
+      : {}),
+    additionalProperty: [
+      property.m2_total ? { "@type": "PropertyValue", name: "Superficie total", value: `${property.m2_total} m²` } : null,
+      property.m2_covered ? { "@type": "PropertyValue", name: "Superficie cubierta", value: `${property.m2_covered} m²` } : null,
+      property.bedrooms ? { "@type": "PropertyValue", name: "Dormitorios", value: property.bedrooms } : null,
+      property.bathrooms ? { "@type": "PropertyValue", name: "Baños", value: property.bathrooms } : null,
+      property.has_garage ? { "@type": "PropertyValue", name: "Cochera", value: "Sí" } : null,
+      property.year_built ? { "@type": "PropertyValue", name: "Año de construcción", value: property.year_built } : null,
+      property.orientation
+        ? { "@type": "PropertyValue", name: "Orientación", value: ORIENTATION_LABELS[property.orientation] ?? property.orientation }
+        : null,
+    ].filter(Boolean),
+    offers: {
+      "@type": "Offer",
+      price: property.price,
+      priceCurrency: property.currency,
+      availability: AVAILABILITY_SCHEMA[property.availability] ?? "https://schema.org/InStock",
+      url: `${SITE_URL}/propiedades/${property.slug}`,
+      seller: { "@type": "RealEstateAgent", name: SITE.name },
+    },
+  };
+
   return (
     <div className="pb-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdString(propertyJsonLd) }}
+      />
       <TrackPropertyView propertyId={property.id} />
       <div className="mx-auto max-w-7xl px-6 pt-8 sm:px-10">
         <nav className="flex flex-wrap items-center gap-1.5 font-body text-sm text-grafito/50">
@@ -75,26 +171,6 @@ export default async function PropertyDetailPage({ params }: { params: Params })
             ) : null}
           </p>
 
-          {property.address ? (
-            <div className="mt-10 border-t border-piedra pt-8">
-              <p className="flex items-center gap-1.5 font-body text-[15px] text-grafito/75">
-                <IconPin className="h-4 w-4 shrink-0 text-grafito/40" />
-                {property.address}, {property.neighborhood}
-              </p>
-              {property.lat && property.lng ? (
-                <div className="relative mt-5 aspect-[16/7] w-full overflow-hidden rounded-2xl">
-                  <iframe
-                    title={`Ubicación de ${property.title}`}
-                    src={`https://www.google.com/maps?q=${property.lat},${property.lng}&z=15&output=embed`}
-                    className="h-full w-full"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
           {specs.length > 0 ? (
             <div className="mt-10 flex flex-wrap gap-x-9 gap-y-4 border-y border-piedra py-6">
               {specs.map((spec, index) => (
@@ -116,6 +192,19 @@ export default async function PropertyDetailPage({ params }: { params: Params })
               {property.description}
             </p>
           </div>
+
+          {features.length > 0 ? (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {features.map((feature) => (
+                <span
+                  key={feature}
+                  className="rounded-md bg-piedra/50 px-2.5 py-1 font-utility text-[10px] font-medium uppercase tracking-[0.06em] text-grafito/70"
+                >
+                  {feature}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <aside className="h-fit lg:sticky lg:top-24">
@@ -143,6 +232,44 @@ export default async function PropertyDetailPage({ params }: { params: Params })
             <p className="font-body text-sm text-grafito/60">{SITE.email}</p>
           </div>
         </aside>
+      </div>
+
+      <div className="mx-auto mt-16 max-w-7xl px-6 sm:px-10">
+        <p className="font-utility text-[11px] uppercase tracking-[0.16em] text-grafito/45">Ubicación</p>
+        {property.address || property.neighborhood ? (
+          <p className="mt-3 flex items-center gap-1.5 font-body text-[15px] text-grafito/75">
+            <IconPin className="h-4 w-4 shrink-0 text-grafito/40" />
+            {[property.address, property.neighborhood].filter(Boolean).join(", ")}
+          </p>
+        ) : null}
+
+        {hasCoordinates ? (
+          <>
+            <div className="relative mt-5 aspect-[16/7] w-full overflow-hidden rounded-2xl">
+              <iframe
+                title={`Ubicación de ${property.title}`}
+                src={`https://www.google.com/maps?q=${property.lat},${property.lng}&z=15&output=embed`}
+                className="h-full w-full"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <a
+              href={openInGoogleMapsUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-grafito/10 px-4 py-2.5 text-sm font-medium text-grafito transition-colors duration-150 ease-out hover:bg-piedra/40"
+            >
+              Abrir en Google Maps ↗
+            </a>
+          </>
+        ) : (
+          <div className="mt-5 flex aspect-[16/7] w-full items-center justify-center rounded-2xl bg-piedra/30">
+            <p className="max-w-xs px-6 text-center font-body text-sm leading-relaxed text-grafito/50">
+              Todavía no cargamos la ubicación exacta de esta propiedad en el mapa.
+            </p>
+          </div>
+        )}
       </div>
 
       {similar.length > 0 ? (

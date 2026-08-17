@@ -1,23 +1,20 @@
 import Link from "next/link";
 import {
   getPropertyStatusCounts,
-  getInquiriesNeedingAttention,
   getTodayVisits,
   getRecentActivity,
   getPropertiesNeedingAttention,
 } from "@/lib/data/admin";
-import { INQUIRY_STATUS_LABELS, INQUIRY_STATUS_TIERS, formatRelativeDate, formatDateTime } from "@/lib/admin/constants";
-import { StatusBadge } from "@/components/admin/status-badge";
+import { formatDateTime } from "@/lib/admin/constants";
 import { ActivityTimeline } from "@/components/admin/activity-timeline";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { Panel } from "@/components/admin/ui/panel";
 import { EmptyState } from "@/components/admin/ui/empty-state";
-import { IconBell, IconCalendar } from "@/components/site/icons";
+import { IconCalendar } from "@/components/site/icons";
 
 export default async function AdminDashboardPage() {
-  const [properties, inquiries, todayVisits, recentActivity, needsAttention] = await Promise.all([
+  const [properties, todayVisits, recentActivity, needsAttention] = await Promise.all([
     getPropertyStatusCounts(),
-    getInquiriesNeedingAttention(6),
     getTodayVisits(),
     getRecentActivity(6),
     getPropertiesNeedingAttention(5),
@@ -36,54 +33,8 @@ export default async function AdminDashboardPage() {
     <div>
       <PageHeader title="Resumen" subtitle="Lo que necesita tu atención hoy." />
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-5">
+      <div className="mt-6">
         <Panel
-          className="lg:col-span-3"
-          title={
-            <span className="flex items-center gap-2">
-              <IconBell className="h-4 w-4 text-petroleo" />
-              Consultas en seguimiento
-            </span>
-          }
-          action={
-            <Link href="/admin/mensajes" className="text-xs font-medium text-petroleo hover:underline">
-              Ver todas
-            </Link>
-          }
-        >
-          {inquiries.length === 0 ? (
-            <EmptyState text="No hay consultas pendientes de seguimiento." />
-          ) : (
-            <ul className="divide-y divide-grafito/[0.06]">
-              {inquiries.map((inquiry) => (
-                <li key={inquiry.id}>
-                  <Link
-                    href="/admin/mensajes"
-                    className="flex items-center justify-between gap-3 rounded-lg py-2.5 transition-colors duration-150 ease-out hover:bg-piedra/25 -mx-2 px-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-grafito">
-                        {inquiry.contact?.full_name ?? "Sin identificar"}
-                      </p>
-                      <p className="truncate text-xs text-grafito/50">
-                        {inquiry.property?.title ?? "Consulta general"} · {formatRelativeDate(inquiry.created_at)}
-                        {inquiry.assigned ? ` · ${inquiry.assigned.full_name}` : ""}
-                      </p>
-                    </div>
-                    <StatusBadge
-                      className="shrink-0"
-                      tier={INQUIRY_STATUS_TIERS[inquiry.status]}
-                      label={INQUIRY_STATUS_LABELS[inquiry.status] ?? inquiry.status}
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-
-        <Panel
-          className="lg:col-span-2"
           title={
             <span className="flex items-center gap-2">
               <IconCalendar className="h-4 w-4 text-petroleo" />

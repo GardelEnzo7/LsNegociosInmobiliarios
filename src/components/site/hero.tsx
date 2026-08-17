@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { PropertySearch } from "@/components/site/property-search";
 import { SITE } from "@/lib/constants";
+import type { PriceRangesByCurrency } from "@/lib/data/properties";
 
 const HERO_IMAGES = [
   { src: "/images/hero/costanera.jpg", alt: "Costanera de Rosario al atardecer, sobre el río Paraná" },
@@ -9,7 +10,13 @@ const HERO_IMAGES = [
   { src: "/images/hero/centro.jpg", alt: "Casco histórico del centro de Rosario" },
 ];
 
-export function Hero({ neighborhoods }: { neighborhoods: string[] }) {
+export function Hero({
+  neighborhoods,
+  priceRanges,
+}: {
+  neighborhoods: string[];
+  priceRanges: PriceRangesByCurrency;
+}) {
   return (
     <section className="relative -mt-20 flex min-h-[100vh] flex-col items-center justify-center overflow-hidden bg-grafito-dark">
       <div className="absolute inset-0">
@@ -35,7 +42,7 @@ export function Hero({ neighborhoods }: { neighborhoods: string[] }) {
         <div className="absolute inset-0 bg-gradient-to-t from-grafito-dark/85 via-grafito-dark/45 to-grafito-dark/55" />
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-4xl px-6 pb-20 pt-24 text-center sm:px-10">
+      <div className="relative z-10 mx-auto w-full max-w-5xl px-6 pb-20 pt-24 text-center sm:px-10">
         <p
           className="animate-fade-up font-utility text-[12px] uppercase tracking-[0.3em] text-blanco-roto/95 [text-shadow:0_1px_4px_rgba(0,0,0,0.55)]"
         >
@@ -55,7 +62,7 @@ export function Hero({ neighborhoods }: { neighborhoods: string[] }) {
         </p>
 
         <div className="animate-fade-up mt-12" style={{ animationDelay: "0.2s" }}>
-          <PropertySearch neighborhoods={neighborhoods} />
+          <PropertySearch neighborhoods={neighborhoods} priceRanges={priceRanges} />
         </div>
       </div>
     </section>

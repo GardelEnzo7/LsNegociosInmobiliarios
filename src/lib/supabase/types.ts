@@ -177,74 +177,6 @@ export type Database = {
           },
         ]
       }
-      inquiries: {
-        Row: {
-          assigned_to: string | null
-          contact_id: string | null
-          created_at: string
-          id: string
-          internal_notes: string | null
-          message_id: string | null
-          origin: string
-          property_id: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          assigned_to?: string | null
-          contact_id?: string | null
-          created_at?: string
-          id?: string
-          internal_notes?: string | null
-          message_id?: string | null
-          origin?: string
-          property_id?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          assigned_to?: string | null
-          contact_id?: string | null
-          created_at?: string
-          id?: string
-          internal_notes?: string | null
-          message_id?: string | null
-          origin?: string
-          property_id?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inquiries_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "admin_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inquiries_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inquiries_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inquiries_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       visits: {
         Row: {
           assigned_to: string | null
@@ -516,44 +448,6 @@ export type Database = {
         }
         Relationships: []
       }
-      messages: {
-        Row: {
-          contact: string
-          created_at: string
-          id: string
-          message: string
-          name: string
-          property_id: string | null
-          read: boolean
-        }
-        Insert: {
-          contact: string
-          created_at?: string
-          id?: string
-          message: string
-          name: string
-          property_id?: string | null
-          read?: boolean
-        }
-        Update: {
-          contact?: string
-          created_at?: string
-          id?: string
-          message?: string
-          name?: string
-          property_id?: string | null
-          read?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       owners: {
         Row: {
           contact_email: string | null
@@ -588,23 +482,31 @@ export type Database = {
           bathrooms: number | null
           bedrooms: number | null
           created_at: string
+          credit_eligible: boolean
           currency: string
           description: string
+          expenses: number | null
           featured: boolean
+          has_garage: boolean
           id: string
           lat: number | null
           lng: number | null
           m2_covered: number | null
           m2_total: number | null
+          meta_description: string | null
+          meta_title: string | null
           neighborhood: string
           operation: string
+          orientation: string | null
           price: number
+          professional_use: boolean
           property_type: string
           slug: string
           status: string
           title: string
           updated_at: string
           views_count: number
+          year_built: number | null
         }
         Insert: {
           address?: string | null
@@ -612,23 +514,31 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           created_at?: string
+          credit_eligible?: boolean
           currency?: string
           description?: string
+          expenses?: number | null
           featured?: boolean
+          has_garage?: boolean
           id?: string
           lat?: number | null
           lng?: number | null
           m2_covered?: number | null
           m2_total?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
           neighborhood: string
           operation: string
+          orientation?: string | null
           price: number
+          professional_use?: boolean
           property_type: string
           slug: string
           status?: string
           title: string
           updated_at?: string
           views_count?: number
+          year_built?: number | null
         }
         Update: {
           address?: string | null
@@ -636,23 +546,31 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           created_at?: string
+          credit_eligible?: boolean
           currency?: string
           description?: string
+          expenses?: number | null
           featured?: boolean
+          has_garage?: boolean
           id?: string
           lat?: number | null
           lng?: number | null
           m2_covered?: number | null
           m2_total?: number | null
+          meta_description?: string | null
+          meta_title?: string | null
           neighborhood?: string
           operation?: string
+          orientation?: string | null
           price?: number
+          professional_use?: boolean
           property_type?: string
           slug?: string
           status?: string
           title?: string
           updated_at?: string
           views_count?: number
+          year_built?: number | null
         }
         Relationships: []
       }

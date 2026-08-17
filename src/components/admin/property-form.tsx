@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { createProperty, updateProperty, type PropertyFormState } from "@/app/actions/properties";
-import { PROPERTY_TYPE_LABELS } from "@/lib/constants";
+import { ORIENTATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { Panel } from "@/components/admin/ui/panel";
 import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { PropertyImagesManager } from "@/components/admin/property-images-manager";
+import { PropertyLocationFields } from "@/components/admin/property-location-fields";
 import type { PropertyWithImages } from "@/lib/data/properties";
 
 const initialState: PropertyFormState = {};
@@ -12,9 +14,6 @@ const initialState: PropertyFormState = {};
 export function PropertyForm({ property }: { property?: PropertyWithImages }) {
   const action = property ? updateProperty.bind(null, property.id) : createProperty;
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [images, setImages] = useState<string[]>(
-    property?.property_images.map((img) => img.url) ?? [""],
-  );
 
   return (
     <form action={formAction} className="space-y-4">
@@ -82,14 +81,13 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
       </Panel>
 
       <Panel title="Ubicación">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Barrio / zona" htmlFor="neighborhood">
-            <input id="neighborhood" name="neighborhood" required defaultValue={property?.neighborhood} className={inputClass} />
-          </FormField>
-          <FormField label="Dirección" htmlFor="address">
-            <input id="address" name="address" defaultValue={property?.address ?? ""} className={inputClass} />
-          </FormField>
-        </div>
+        <PropertyLocationFields
+          initialAddress={property?.address ?? ""}
+          initialNeighborhood={property?.neighborhood ?? ""}
+          initialLat={property?.lat ?? null}
+          initialLng={property?.lng ?? null}
+          disabled={pending}
+        />
       </Panel>
 
       <Panel title="Características">
@@ -106,31 +104,82 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
           <FormField label="Baños" htmlFor="bathrooms">
             <input id="bathrooms" name="bathrooms" type="number" min={0} defaultValue={property?.bathrooms ?? ""} className={inputClass} />
           </FormField>
+          <FormField label="Año de construcción" htmlFor="yearBuilt">
+            <input id="yearBuilt" name="yearBuilt" type="number" min={1800} max={2100} defaultValue={property?.year_built ?? ""} className={inputClass} />
+          </FormField>
+          <FormField label="Expensas (ARS/mes)" htmlFor="expenses">
+            <input id="expenses" name="expenses" type="number" min={0} defaultValue={property?.expenses ?? ""} className={inputClass} />
+          </FormField>
+          <FormField label="Orientación" htmlFor="orientation">
+            <SelectShell>
+              <select id="orientation" name="orientation" defaultValue={property?.orientation ?? ""} className={selectClass}>
+                <option value="">Sin especificar</option>
+                {Object.entries(ORIENTATION_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </SelectShell>
+          </FormField>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+          <label className="flex items-center gap-2 text-sm text-grafito/70">
+            <input
+              type="checkbox"
+              name="hasGarage"
+              defaultChecked={property?.has_garage ?? false}
+              className="h-4 w-4 rounded border-grafito/15 text-petroleo focus:ring-petroleo"
+            />
+            Cochera
+          </label>
+          <label className="flex items-center gap-2 text-sm text-grafito/70">
+            <input
+              type="checkbox"
+              name="creditEligible"
+              defaultChecked={property?.credit_eligible ?? false}
+              className="h-4 w-4 rounded border-grafito/15 text-petroleo focus:ring-petroleo"
+            />
+            Apto crédito
+          </label>
+          <label className="flex items-center gap-2 text-sm text-grafito/70">
+            <input
+              type="checkbox"
+              name="professionalUse"
+              defaultChecked={property?.professional_use ?? false}
+              className="h-4 w-4 rounded border-grafito/15 text-petroleo focus:ring-petroleo"
+            />
+            Apto profesional
+          </label>
         </div>
       </Panel>
 
-      <Panel title="Fotos (URLs)">
-        <div className="space-y-2">
-          {images.map((url, index) => (
-            <div key={index} className="flex gap-2">
-              <input name="imageUrls" defaultValue={url} placeholder="https://..." className={inputClass} />
-              <button
-                type="button"
-                onClick={() => setImages((current) => current.filter((_, i) => i !== index))}
-                className="shrink-0 rounded-lg border border-grafito/10 px-3 text-sm text-grafito/60 transition-colors duration-150 ease-out hover:bg-piedra/40"
-              >
-                Quitar
-              </button>
-            </div>
-          ))}
+      <Panel title="SEO de la propiedad (opcional)">
+        <div className="space-y-4">
+          <FormField label="Título SEO (máx. 70 caracteres)" htmlFor="metaTitle">
+            <input id="metaTitle" name="metaTitle" maxLength={70} defaultValue={property?.meta_title ?? ""} className={inputClass} />
+          </FormField>
+          <FormField label="Descripción SEO (máx. 160 caracteres)" htmlFor="metaDescription">
+            <textarea
+              id="metaDescription"
+              name="metaDescription"
+              rows={2}
+              maxLength={160}
+              defaultValue={property?.meta_description ?? ""}
+              className={inputClass}
+            />
+          </FormField>
+          <p className="font-body text-xs text-grafito/45">
+            Si se dejan vacíos, se genera automáticamente un título y descripción a partir de los datos de la propiedad.
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setImages((current) => [...current, ""])}
-          className="mt-2 text-sm font-medium text-petroleo hover:underline"
-        >
-          + Agregar foto
-        </button>
+      </Panel>
+
+      <Panel title="Fotos">
+        <PropertyImagesManager
+          initialImages={property?.property_images.map((img) => ({ id: img.id, url: img.url, alt: img.alt })) ?? []}
+          disabled={pending}
+        />
       </Panel>
 
       <Panel title="Publicación">
@@ -172,7 +221,7 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
         disabled={pending}
         className="rounded-lg bg-grafito px-6 py-3 text-sm font-medium text-blanco-roto transition-[background-color,transform] duration-200 ease-out hover:bg-grafito-dark active:scale-[0.98] disabled:opacity-60"
       >
-        {pending ? "Guardando…" : property ? "Guardar cambios" : "Publicar propiedad"}
+        {pending ? "Guardando y subiendo fotos…" : property ? "Guardar cambios" : "Publicar propiedad"}
       </button>
     </form>
   );

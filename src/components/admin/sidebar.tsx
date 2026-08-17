@@ -7,7 +7,6 @@ import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 import {
   IconHome,
-  IconBell,
   IconCalendar,
   IconBuilding,
   IconUsers,
@@ -18,7 +17,6 @@ import {
 
 const OPERATIVE_LINKS = [
   { href: "/admin", label: "Resumen", icon: IconHome, exact: true },
-  { href: "/admin/mensajes", label: "Consultas", icon: IconBell, badge: true },
   { href: "/admin/visitas", label: "Visitas", icon: IconCalendar },
   { href: "/admin/propiedades", label: "Propiedades", icon: IconBuilding },
   { href: "/admin/clientes", label: "Clientes", icon: IconUsers },
@@ -33,11 +31,9 @@ const MANAGEMENT_LINKS = [
 const ROLE_LABELS: Record<string, string> = { admin: "Administrador", agente: "Asesor" };
 
 export function Sidebar({
-  unreadCount = 0,
   role,
   profileName,
 }: {
-  unreadCount?: number;
   role?: string | null;
   profileName?: string | null;
 }) {
@@ -64,7 +60,7 @@ export function Sidebar({
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         <div className="space-y-0.5">
           {OPERATIVE_LINKS.map((link) => (
-            <NavLink key={link.href} link={link} active={isActive(link.href, link.exact)} unreadCount={unreadCount} />
+            <NavLink key={link.href} link={link} active={isActive(link.href, link.exact)} />
           ))}
         </div>
 
@@ -115,11 +111,9 @@ export function Sidebar({
 function NavLink({
   link,
   active,
-  unreadCount,
 }: {
-  link: { href: string; label: string; icon: (props: { className?: string }) => React.ReactElement; badge?: boolean };
+  link: { href: string; label: string; icon: (props: { className?: string }) => React.ReactElement };
   active: boolean;
-  unreadCount?: number;
 }) {
   const Icon = link.icon;
   return (
@@ -132,11 +126,6 @@ function NavLink({
     >
       <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-petroleo-claro" : "text-blanco-roto/40")} />
       <span className="flex-1">{link.label}</span>
-      {link.badge && unreadCount ? (
-        <span className="rounded-full bg-petroleo-claro px-2 py-0.5 font-utility text-[10px] font-medium text-grafito-dark">
-          {unreadCount}
-        </span>
-      ) : null}
     </Link>
   );
 }

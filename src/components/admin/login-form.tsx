@@ -21,7 +21,6 @@ export function LoginForm() {
           type="email"
           required
           autoComplete="username"
-          defaultValue="admin@lsnegocios.com.ar"
           className="mt-1.5 w-full rounded-lg border border-grafito/10 px-3 py-2.5 text-sm text-grafito outline-none transition-colors duration-150 ease-out focus:border-petroleo"
         />
       </div>
@@ -36,7 +35,6 @@ export function LoginForm() {
             type={showPassword ? "text" : "password"}
             required
             autoComplete="current-password"
-            defaultValue="LSNegocios2026"
             className="w-full rounded-lg border border-grafito/10 px-3 py-2.5 pr-10 text-sm text-grafito outline-none transition-colors duration-150 ease-out focus:border-petroleo"
           />
           <button

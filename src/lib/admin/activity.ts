@@ -2,15 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/types";
 
-type EntityType = "property" | "contact" | "inquiry" | "visit";
+type EntityType = "property" | "contact" | "visit";
 
 type EventType =
   | "property_created"
   | "property_updated"
   | "price_changed"
   | "availability_changed"
-  | "inquiry_created"
-  | "inquiry_status_changed"
   | "visit_created"
   | "visit_completed"
   | "visit_cancelled"

@@ -104,9 +104,3 @@ export async function deleteContact(id: string) {
   await supabase.from("contacts").delete().eq("id", id);
   revalidatePath("/admin/clientes");
 }
-
-export async function linkContactToInquiry(inquiryId: string, contactId: string) {
-  const supabase = await createClient();
-  await supabase.from("inquiries").update({ contact_id: contactId }).eq("id", inquiryId);
-  revalidatePath("/admin/mensajes");
-}

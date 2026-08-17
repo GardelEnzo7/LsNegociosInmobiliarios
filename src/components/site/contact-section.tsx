@@ -1,6 +1,6 @@
 import { ContactForm } from "@/components/site/contact-form";
 import { Reveal } from "@/components/site/reveal";
-import { IconInstagram, IconPin } from "@/components/site/icons";
+import { IconInstagram } from "@/components/site/icons";
 import { SITE, whatsappLink } from "@/lib/constants";
 
 export function ContactSection({ topic }: { topic?: string }) {
@@ -22,12 +22,6 @@ export function ContactSection({ topic }: { topic?: string }) {
           <Reveal className="rounded-2xl bg-blanco-roto p-8 sm:p-10">
             <h3 className="font-display text-xl text-grafito">Información de Contacto</h3>
             <ul className="mt-6 space-y-5 font-body text-sm text-grafito/75">
-              <li>
-                <p className="font-utility text-[11px] uppercase tracking-[0.1em] text-grafito/45">
-                  Dirección
-                </p>
-                <p className="mt-1">{SITE.address}</p>
-              </li>
               <li>
                 <p className="font-utility text-[11px] uppercase tracking-[0.1em] text-grafito/45">
                   Teléfono
@@ -86,22 +80,6 @@ export function ContactSection({ topic }: { topic?: string }) {
             </div>
           </Reveal>
         </div>
-
-        <Reveal delay={150} className="relative mt-8 aspect-[21/9] w-full overflow-hidden rounded-2xl">
-          <iframe
-            title={`Ubicación de ${SITE.name}`}
-            src={SITE.mapEmbedSrc}
-            className="h-full w-full grayscale-[10%]"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-          <div className="pointer-events-none absolute left-5 top-5 max-w-xs rounded-xl bg-blanco-roto p-4 shadow-[0_12px_30px_-10px_rgba(28,33,41,0.3)]">
-            <p className="flex items-center gap-1.5 font-display text-sm text-grafito">
-              <IconPin className="h-4 w-4 shrink-0 text-petroleo" />
-              {SITE.address}
-            </p>
-          </div>
-        </Reveal>
       </div>
     </section>
   );

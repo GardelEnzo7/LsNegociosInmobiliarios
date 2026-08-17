@@ -1,9 +1,9 @@
 import { PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { CustomSelect } from "@/components/site/custom-select";
+import { PriceRangeFilter } from "@/components/site/price-range-filter";
 import { IconSearch } from "@/components/site/icons";
+import type { PriceRangesByCurrency } from "@/lib/data/properties";
 import { cn } from "@/lib/utils";
-
-const fieldClass = "w-full bg-transparent font-body text-sm text-grafito outline-none";
 
 const PROPERTY_TYPE_OPTIONS = Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => ({
   value,
@@ -17,15 +17,18 @@ const OPERATION_OPTIONS = [
 
 type PropertySearchProps = {
   neighborhoods: string[];
+  priceRanges: PriceRangesByCurrency;
   defaultValues?: {
     operation?: string;
     propertyType?: string;
     neighborhood?: string;
-    priceMax?: string;
+    currency?: string;
+    priceMin?: number;
+    priceMax?: number;
   };
 };
 
-export function PropertySearch({ neighborhoods, defaultValues }: PropertySearchProps) {
+export function PropertySearch({ neighborhoods, priceRanges, defaultValues }: PropertySearchProps) {
   const neighborhoodOptions = neighborhoods.map((zone) => ({ value: zone, label: zone }));
 
   return (
@@ -64,19 +67,13 @@ export function PropertySearch({ neighborhoods, defaultValues }: PropertySearchP
         />
       </FieldWrap>
       <Divider />
-      <label className="flex flex-1 cursor-pointer flex-col gap-1 px-5 py-4 transition-colors duration-200 ease-out hover:bg-plata/60">
-        <span className="whitespace-nowrap font-utility text-[10px] uppercase tracking-[0.14em] text-grafito/45">
-          Precio máximo
-        </span>
-        <input
-          type="number"
-          name="precioMax"
-          min={0}
-          placeholder="Sin límite"
-          defaultValue={defaultValues?.priceMax ?? ""}
-          className={cn(fieldClass, "placeholder:text-grafito/35")}
-        />
-      </label>
+      <PriceRangeFilter
+        ranges={priceRanges}
+        defaultCurrency={defaultValues?.currency}
+        defaultMin={defaultValues?.priceMin}
+        defaultMax={defaultValues?.priceMax}
+        variant="hero"
+      />
       <button
         type="submit"
         className="group flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-b-2xl bg-grafito px-7 py-4 font-utility text-[13px] font-medium uppercase tracking-[0.08em] text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark active:scale-[0.98] sm:rounded-b-none sm:rounded-r-2xl"

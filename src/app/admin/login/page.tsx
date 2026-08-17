@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { LoginForm } from "@/components/admin/login-form";
+
+export const metadata: Metadata = {
+  title: "Ingresar",
+  robots: { index: false, follow: false },
+};
 
 export default function AdminLoginPage() {
   return (
@@ -44,12 +50,16 @@ export default function AdminLoginPage() {
             <LoginForm />
           </div>
 
-          <div className="mt-5 rounded-2xl bg-petroleo/[0.06] p-4 text-center">
-            <p className="font-utility text-[10px] font-medium uppercase tracking-[0.1em] text-petroleo">
-              Cuenta de prueba (portfolio)
-            </p>
-            <p className="mt-1 text-xs text-grafito/55">admin@lsnegocios.com.ar &middot; LSNegocios2026</p>
-          </div>
+          {process.env.NEXT_PUBLIC_DEMO_MODE === "true" ? (
+            <div className="mt-5 rounded-2xl bg-petroleo/[0.06] p-4 text-center">
+              <p className="font-utility text-[10px] font-medium uppercase tracking-[0.1em] text-petroleo">
+                Cuenta de prueba (portfolio)
+              </p>
+              <p className="mt-1 text-xs text-grafito/55">
+                Pedí las credenciales de demo a quien te compartió este link.
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

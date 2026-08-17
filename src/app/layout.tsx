@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope, IBM_Plex_Mono } from "next/font/google";
+import { SITE, SITE_URL } from "@/lib/constants";
+import { jsonLdString } from "@/lib/utils";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -22,10 +24,66 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+const DEFAULT_DESCRIPTION =
+  "Compra, venta, alquiler, tasaciones e inversiones inmobiliarias en Rosario. Encontrá tu lugar en el horizonte de la ciudad.";
+
 export const metadata: Metadata = {
-  title: "LS Negocios Inmobiliarios | Rosario",
-  description:
-    "Compra, venta, alquiler, tasaciones e inversiones inmobiliarias en Rosario. Encontrá tu lugar en el horizonte de la ciudad.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE.name} | Rosario`,
+    template: `%s | ${SITE.name}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE.name,
+  robots: { index: true, follow: true },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/Logo-3.webp",
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: SITE.name,
+    title: `${SITE.name} | Rosario`,
+    description: DEFAULT_DESCRIPTION,
+    url: "/",
+    images: [{ url: "/images/hero/costanera.jpg", width: 1200, height: 800, alt: "Costanera de Rosario" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE.name} | Rosario`,
+    description: DEFAULT_DESCRIPTION,
+    images: ["/images/hero/costanera.jpg"],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1c2129",
+};
+
+const OPENING_HOURS = SITE.hours
+  .filter((h) => h.value.toLowerCase() !== "cerrado")
+  .map((h) => `${h.label}: ${h.value}`);
+
+// Sin dirección física propia todavía (atención remota / a domicilio) — no
+// declaramos PostalAddress para no afirmar un local que no existe.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "RealEstateAgent",
+  name: SITE.name,
+  alternateName: SITE.shortName,
+  description: SITE.description,
+  url: SITE_URL,
+  logo: `${SITE_URL}/Logo.webp`,
+  image: `${SITE_URL}/images/hero/costanera.jpg`,
+  telephone: SITE.phoneDisplay,
+  email: SITE.email,
+  areaServed: {
+    "@type": "City",
+    name: "Rosario",
+  },
+  ...(OPENING_HOURS.length > 0 ? { openingHours: OPENING_HOURS } : {}),
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -35,6 +93,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fraunces.variable} ${manrope.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-plata text-grafito font-body">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdString(organizationJsonLd) }}
+        />
         {children}
       </body>
     </html>

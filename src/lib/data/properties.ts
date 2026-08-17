@@ -9,9 +9,14 @@ export type PropertyFilters = {
   operation?: string;
   propertyType?: string;
   neighborhood?: string;
+  currency?: string;
+  priceMin?: number;
   priceMax?: number;
   query?: string;
 };
+
+export type PriceRange = { min: number; max: number };
+export type PriceRangesByCurrency = { USD: PriceRange | null; ARS: PriceRange | null };
 
 export async function getFeaturedProperties(): Promise<PropertyWithImages[]> {
   const supabase = await createClient();
@@ -35,9 +40,14 @@ export async function getProperties(filters: PropertyFilters = {}): Promise<Prop
   if (filters.operation) query = query.eq("operation", filters.operation);
   if (filters.propertyType) query = query.eq("property_type", filters.propertyType);
   if (filters.neighborhood) query = query.eq("neighborhood", filters.neighborhood);
-  if (filters.priceMax) query = query.lte("price", filters.priceMax);
+  if (filters.currency) query = query.eq("currency", filters.currency);
+  if (filters.priceMin != null) query = query.gte("price", filters.priceMin);
+  if (filters.priceMax != null) query = query.lte("price", filters.priceMax);
   if (filters.query) {
-    const term = filters.query.trim();
+    // Strip characters with special meaning in PostgREST's filter syntax
+    // (comma separates OR clauses, parens group them, % is the ILIKE wildcard)
+    // so a search term can't malform or manipulate the query we build below.
+    const term = filters.query.trim().replace(/[,()%]/g, "");
     if (term) {
       query = query.or(`title.ilike.%${term}%,address.ilike.%${term}%,neighborhood.ilike.%${term}%`);
     }
@@ -83,6 +93,54 @@ export async function getClosedProperties(limit = 3): Promise<PropertyWithImages
     .limit(limit);
 
   return (data ?? []).map(sortImages);
+}
+
+export async function getPublishedPropertySlugs(): Promise<{ slug: string; updatedAt: string }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select("slug, updated_at")
+    .eq("status", "published");
+
+  return (data ?? []).map((row) => ({ slug: row.slug, updatedAt: row.updated_at }));
+}
+
+export async function getClosedPropertiesCount(): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("properties")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published")
+    .in("availability", ["vendida", "alquilada"]);
+
+  return count ?? 0;
+}
+
+/** Real min/max price per currency across published, priced properties —
+ * computed once (cheap: only price+currency columns) and reused as the
+ * slider's stable bounds. Never recomputed while the user drags the slider,
+ * only on page load. */
+export async function getPriceRangesByCurrency(): Promise<PriceRangesByCurrency> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("properties")
+    .select("price, currency")
+    .eq("status", "published")
+    .gt("price", 0);
+
+  const ranges: PriceRangesByCurrency = { USD: null, ARS: null };
+  for (const row of data ?? []) {
+    if (row.currency !== "USD" && row.currency !== "ARS") continue;
+    const current = ranges[row.currency];
+    if (!current) {
+      ranges[row.currency] = { min: row.price, max: row.price };
+    } else {
+      current.min = Math.min(current.min, row.price);
+      current.max = Math.max(current.max, row.price);
+    }
+  }
+
+  return ranges;
 }
 
 export async function getNeighborhoods(): Promise<string[]> {

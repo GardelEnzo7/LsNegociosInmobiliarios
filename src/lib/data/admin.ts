@@ -21,18 +21,6 @@ export async function getPropertyById(id: string) {
   return data;
 }
 
-export async function getAllInquiries() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("inquiries")
-    .select(
-      "id, status, origin, created_at, internal_notes, message:messages(id, name, contact, message, read), property:properties(id, title, slug), contact:contacts(id, full_name), assigned:admin_profiles(id, full_name)",
-    )
-    .order("created_at", { ascending: false });
-
-  return data ?? [];
-}
-
 export async function getAdminProfileForCurrentUser() {
   const supabase = await createClient();
   const { data } = await supabase
@@ -52,32 +40,6 @@ export async function getActiveAdminProfiles() {
     .order("full_name");
 
   return data ?? [];
-}
-
-export async function getAllMessages() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("messages")
-    .select("*, properties(title, slug)")
-    .order("created_at", { ascending: false });
-
-  return data ?? [];
-}
-
-export async function getUnreadMessageCount() {
-  const supabase = await createClient();
-  const { count } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .eq("read", false);
-
-  return count ?? 0;
-}
-
-export async function getMessageById(id: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("messages").select("*").eq("id", id).maybeSingle();
-  return data;
 }
 
 export async function getAllLeads() {
@@ -115,19 +77,6 @@ export async function getContactById(id: string) {
   return data;
 }
 
-export async function getInquiriesForContact(contactId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("inquiries")
-    .select(
-      "id, status, origin, created_at, internal_notes, property:properties(id, title, slug), assigned:admin_profiles(id, full_name)",
-    )
-    .eq("contact_id", contactId)
-    .order("created_at", { ascending: false });
-
-  return data ?? [];
-}
-
 export async function getVisitsForContact(contactId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -141,7 +90,7 @@ export async function getVisitsForContact(contactId: string) {
   return data ?? [];
 }
 
-export async function getActivityForEntity(entityType: "property" | "contact" | "inquiry" | "visit", entityId: string) {
+export async function getActivityForEntity(entityType: "property" | "contact" | "visit", entityId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("activity_log")
@@ -165,61 +114,12 @@ export async function getPropertiesForSelect() {
 
 export async function getPropertyStats() {
   const supabase = await createClient();
-  const [{ data: properties }, { data: messages }] = await Promise.all([
-    supabase
-      .from("properties")
-      .select("id, title, neighborhood, views_count")
-      .order("views_count", { ascending: false }),
-    supabase.from("messages").select("property_id"),
-  ]);
+  const { data: properties } = await supabase
+    .from("properties")
+    .select("id, title, neighborhood, views_count")
+    .order("views_count", { ascending: false });
 
-  const messageCounts = new Map<string, number>();
-  for (const message of messages ?? []) {
-    if (!message.property_id) continue;
-    messageCounts.set(message.property_id, (messageCounts.get(message.property_id) ?? 0) + 1);
-  }
-
-  return (properties ?? []).map((property) => ({
-    ...property,
-    messages_count: messageCounts.get(property.id) ?? 0,
-  }));
-}
-
-export async function getInquiryAnalytics() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("inquiries")
-    .select("id, origin, status, created_at, property:properties(operation, neighborhood)");
-
-  const rows = data ?? [];
-
-  const byOrigin = new Map<string, number>();
-  const byOperation = new Map<string, number>();
-  const byNeighborhood = new Map<string, number>();
-  const byMonth = new Map<string, number>();
-
-  for (const row of rows) {
-    byOrigin.set(row.origin, (byOrigin.get(row.origin) ?? 0) + 1);
-    if (row.property?.operation) {
-      byOperation.set(row.property.operation, (byOperation.get(row.property.operation) ?? 0) + 1);
-    }
-    if (row.property?.neighborhood) {
-      byNeighborhood.set(row.property.neighborhood, (byNeighborhood.get(row.property.neighborhood) ?? 0) + 1);
-    }
-    const month = row.created_at.slice(0, 7);
-    byMonth.set(month, (byMonth.get(month) ?? 0) + 1);
-  }
-
-  const toSortedEntries = (map: Map<string, number>) =>
-    Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-
-  return {
-    total: rows.length,
-    byOrigin: toSortedEntries(byOrigin),
-    byOperation: toSortedEntries(byOperation),
-    byNeighborhood: toSortedEntries(byNeighborhood).slice(0, 8),
-    byMonth: Array.from(byMonth.entries()).sort((a, b) => a[0].localeCompare(b[0])).slice(-6),
-  };
+  return properties ?? [];
 }
 
 export async function getClosedDealsAnalytics() {
@@ -303,31 +203,6 @@ export async function getPropertyStatusCounts() {
   };
 }
 
-export async function getInquiryPipelineCounts() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("inquiries").select("status");
-  const rows = data ?? [];
-
-  return {
-    total: rows.length,
-    nuevo: rows.filter((r) => r.status === "nuevo").length,
-    pendientes: rows.filter((r) => !["cerrado", "perdido"].includes(r.status)).length,
-  };
-}
-
-export async function getRecentInquiries(limit = 6) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("inquiries")
-    .select(
-      "id, status, origin, created_at, contact:contacts(id, full_name), property:properties(id, title, slug), assigned:admin_profiles(id, full_name)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  return data ?? [];
-}
-
 export async function getAllVisits() {
   const supabase = await createClient();
   const { data } = await supabase
@@ -343,20 +218,6 @@ export async function getAllVisits() {
 export async function getContactsForSelect() {
   const supabase = await createClient();
   const { data } = await supabase.from("contacts").select("id, full_name").order("full_name");
-  return data ?? [];
-}
-
-export async function getInquiriesNeedingAttention(limit = 5) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("inquiries")
-    .select(
-      "id, status, origin, created_at, contact:contacts(id, full_name), property:properties(id, title, slug), assigned:admin_profiles(id, full_name)",
-    )
-    .not("status", "in", "(cerrado,perdido)")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
   return data ?? [];
 }
 

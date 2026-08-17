@@ -70,7 +70,6 @@ export function Footer() {
             Contacto
           </p>
           <ul className="mt-4 space-y-2 text-sm">
-            <li>{SITE.address}</li>
             <li>{SITE.phoneDisplay}</li>
             <li>{SITE.email}</li>
           </ul>

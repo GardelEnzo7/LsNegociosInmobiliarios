@@ -36,36 +36,6 @@ export const AVAILABILITY_TIERS: Record<string, StatusTier> = {
   alquilada: "won",
 };
 
-export const INQUIRY_STATUS_LABELS: Record<string, string> = {
-  nuevo: "Nuevo",
-  contactado: "Contactado",
-  en_seguimiento: "En seguimiento",
-  visita_coordinada: "Visita coordinada",
-  negociacion: "Negociación",
-  cerrado: "Cerrado",
-  perdido: "Perdido",
-};
-
-export const INQUIRY_STATUS_TIERS: Record<string, StatusTier> = {
-  nuevo: "info",
-  contactado: "pending",
-  en_seguimiento: "pending",
-  visita_coordinada: "pending",
-  negociacion: "pending",
-  cerrado: "won",
-  perdido: "lost",
-};
-
-export const INQUIRY_STATUS_ORDER = [
-  "nuevo",
-  "contactado",
-  "en_seguimiento",
-  "visita_coordinada",
-  "negociacion",
-  "cerrado",
-  "perdido",
-] as const;
-
 export const VISIT_STATUS_LABELS: Record<string, string> = {
   programada: "Programada",
   realizada: "Realizada",

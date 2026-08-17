@@ -1,35 +1,28 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 import Image from "next/image";
 import Link from "next/link";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import type { PropertyWithImages } from "@/lib/data/properties";
 import { OPERATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
+import { markerIcon } from "@/components/site/leaflet-marker-icon";
 import { formatPrice } from "@/lib/utils";
 import { IconArea, IconBed, IconPin } from "@/components/site/icons";
 
-const markerIcon = L.divIcon({
-  className: "",
-  html: `<div style="
-    width:30px;height:30px;border-radius:999px 999px 999px 4px;
-    background:#2b333d;transform:rotate(45deg);
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 3px 8px rgba(28,33,41,0.4);border:2px solid white;
-  "><div style="transform:rotate(-45deg);width:8px;height:8px;border-radius:999px;background:#6fa8ac;"></div></div>`,
-  iconSize: [30, 30],
-  iconAnchor: [15, 30],
-  popupAnchor: [0, -30],
-});
+/** typeof check (not truthy) so a legitimate 0 lat/lng never gets treated
+ * as "missing" — irrelevant in Rosario in practice, but cheap to get right. */
+function hasCoordinates(p: PropertyWithImages): p is PropertyWithImages & { lat: number; lng: number } {
+  return typeof p.lat === "number" && typeof p.lng === "number";
+}
 
 export function PropertiesMap({ properties }: { properties: PropertyWithImages[] }) {
-  const points = properties.filter((p) => p.lat && p.lng);
+  const points = properties.filter(hasCoordinates);
   const center: [number, number] =
     points.length > 0
       ? [
-          points.reduce((sum, p) => sum + Number(p.lat), 0) / points.length,
-          points.reduce((sum, p) => sum + Number(p.lng), 0) / points.length,
+          points.reduce((sum, p) => sum + p.lat, 0) / points.length,
+          points.reduce((sum, p) => sum + p.lng, 0) / points.length,
         ]
       : [-32.9468, -60.6393];
 
@@ -48,7 +41,7 @@ export function PropertiesMap({ properties }: { properties: PropertyWithImages[]
       {points.map((property) => {
         const cover = property.property_images[0];
         return (
-          <Marker key={property.id} position={[Number(property.lat), Number(property.lng)]} icon={markerIcon}>
+          <Marker key={property.id} position={[property.lat, property.lng]} icon={markerIcon}>
             <Popup className="property-popup" minWidth={220} maxWidth={220}>
               <Link href={`/propiedades/${property.slug}`} className="group block">
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-piedra">

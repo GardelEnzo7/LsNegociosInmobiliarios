@@ -1,14 +1,22 @@
+import Link from "next/link";
 import { PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { CustomSelect } from "@/components/site/custom-select";
+import { PriceRangeFilter } from "@/components/site/price-range-filter";
 import { IconSearch } from "@/components/site/icons";
+import type { PriceRangesByCurrency } from "@/lib/data/properties";
 
 type FilterBarProps = {
   neighborhoods: string[];
+  priceRanges: PriceRangesByCurrency;
+  hasActiveFilters: boolean;
   defaultValues: {
     query?: string;
     operation?: string;
     propertyType?: string;
     neighborhood?: string;
+    currency?: string;
+    priceMin?: number;
+    priceMax?: number;
   };
 };
 
@@ -22,7 +30,7 @@ const OPERATION_OPTIONS = [
   { value: "alquiler", label: "Alquiler" },
 ];
 
-export function PropertiesFilterBar({ neighborhoods, defaultValues }: FilterBarProps) {
+export function PropertiesFilterBar({ neighborhoods, priceRanges, hasActiveFilters, defaultValues }: FilterBarProps) {
   const neighborhoodOptions = neighborhoods.map((zone) => ({ value: zone, label: zone }));
 
   return (
@@ -66,12 +74,27 @@ export function PropertiesFilterBar({ neighborhoods, defaultValues }: FilterBarP
             variant="bar"
           />
         </div>
+        <PriceRangeFilter
+          ranges={priceRanges}
+          defaultCurrency={defaultValues.currency}
+          defaultMin={defaultValues.priceMin}
+          defaultMax={defaultValues.priceMax}
+          variant="bar"
+        />
         <button
           type="submit"
-          className="ml-auto rounded-xl bg-grafito px-6 py-2.5 font-utility text-[11px] font-medium uppercase tracking-[0.08em] text-blanco-roto transition-[background-color,transform] duration-200 ease-out hover:bg-grafito-dark active:scale-[0.97]"
+          className="rounded-xl bg-grafito px-6 py-2.5 font-utility text-[11px] font-medium uppercase tracking-[0.08em] text-blanco-roto transition-[background-color,transform] duration-200 ease-out hover:bg-grafito-dark active:scale-[0.97]"
         >
           Filtrar
         </button>
+        {hasActiveFilters ? (
+          <Link
+            href="/propiedades"
+            className="font-utility text-[11px] font-medium uppercase tracking-[0.06em] text-grafito/45 underline-offset-2 hover:text-grafito/70 hover:underline"
+          >
+            Limpiar filtros
+          </Link>
+        ) : null}
       </div>
     </form>
   );

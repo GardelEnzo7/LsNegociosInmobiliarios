@@ -3,10 +3,14 @@ import Link from "next/link";
 import { Reveal } from "@/components/site/reveal";
 import { ALL_SERVICES } from "@/components/site/services";
 
+const DESCRIPTION =
+  "Compra, venta, alquiler, tasaciones, asesoramiento, inversiones y administración de propiedades en Rosario.";
+
 export const metadata: Metadata = {
-  title: "Servicios | Laura Senmache Negocios Inmobiliarios",
-  description:
-    "Compra, venta, alquiler, tasaciones, asesoramiento, inversiones y administración de propiedades en Rosario.",
+  title: "Servicios",
+  description: DESCRIPTION,
+  alternates: { canonical: "/servicios" },
+  openGraph: { title: "Servicios", description: DESCRIPTION, url: "/servicios" },
 };
 
 const [primary, ...secondary] = ALL_SERVICES;

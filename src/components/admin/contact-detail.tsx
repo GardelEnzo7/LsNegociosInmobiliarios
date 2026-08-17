@@ -9,19 +9,14 @@ import {
   removeContactRole,
   updateContactNotes,
 } from "@/app/actions/contacts";
-import { updateInquiryStatus } from "@/app/actions/inquiries";
 import { updateVisitStatus } from "@/app/actions/visits";
 import {
   CONTACT_ROLE_LABELS,
-  INQUIRY_STATUS_LABELS,
-  INQUIRY_STATUS_TIERS,
-  INQUIRY_STATUS_ORDER,
   VISIT_STATUS_LABELS,
   VISIT_STATUS_TIERS,
   VISIT_STATUS_ORDER,
   TIER_STYLES,
   formatDateTime,
-  formatRelativeDate,
 } from "@/lib/admin/constants";
 import { StatusSelect } from "@/components/admin/status-badge";
 import { useConfirm } from "@/components/admin/ui/confirm-dialog";
@@ -31,7 +26,6 @@ import { ActivityTimeline } from "@/components/admin/activity-timeline";
 import { cn } from "@/lib/utils";
 
 const ALL_ROLES = Object.keys(CONTACT_ROLE_LABELS);
-const INQUIRY_STATUS_OPTIONS = INQUIRY_STATUS_ORDER.map((s) => ({ value: s, label: INQUIRY_STATUS_LABELS[s] }));
 const VISIT_STATUS_OPTIONS = VISIT_STATUS_ORDER.map((s) => ({ value: s, label: VISIT_STATUS_LABELS[s] }));
 
 type Contact = {
@@ -43,16 +37,6 @@ type Contact = {
   notes: string | null;
   contact_roles: { role: string }[];
   contact_properties: { properties: { id: string; title: string; slug: string } | null }[];
-};
-
-type Inquiry = {
-  id: string;
-  status: string;
-  origin: string;
-  created_at: string;
-  internal_notes: string | null;
-  property: { id: string; title: string; slug: string } | null;
-  assigned: { id: string; full_name: string } | null;
 };
 
 type Visit = {
@@ -74,12 +58,10 @@ type ActivityEvent = {
 
 export function ContactDetail({
   contact,
-  inquiries,
   visits,
   activity,
 }: {
   contact: Contact;
-  inquiries: Inquiry[];
   visits: Visit[];
   activity: ActivityEvent[];
 }) {
@@ -185,18 +167,6 @@ export function ContactDetail({
             )}
           </Panel>
 
-          <Panel title="Consultas">
-            {inquiries.length === 0 ? (
-              <EmptyState text="Sin consultas registradas." />
-            ) : (
-              <ul className="divide-y divide-grafito/[0.06]">
-                {inquiries.map((inquiry) => (
-                  <InquiryRow key={inquiry.id} inquiry={inquiry} />
-                ))}
-              </ul>
-            )}
-          </Panel>
-
           <Panel title="Visitas">
             {visits.length === 0 ? (
               <EmptyState text="Sin visitas registradas." />
@@ -217,28 +187,6 @@ export function ContactDetail({
         </div>
       </div>
     </div>
-  );
-}
-
-function InquiryRow({ inquiry }: { inquiry: Inquiry }) {
-  const [isPending, startTransition] = useTransition();
-  return (
-    <li className={cn("flex items-center justify-between gap-3 py-3 transition-opacity duration-150", isPending && "opacity-50")}>
-      <div className="min-w-0">
-        <p className="truncate text-sm text-grafito">{inquiry.property?.title ?? "Consulta general"}</p>
-        <p className="text-xs text-grafito/45">
-          {formatRelativeDate(inquiry.created_at)}
-          {inquiry.assigned ? ` · ${inquiry.assigned.full_name}` : ""}
-        </p>
-      </div>
-      <StatusSelect
-        value={inquiry.status}
-        tier={INQUIRY_STATUS_TIERS[inquiry.status]}
-        options={INQUIRY_STATUS_OPTIONS}
-        disabled={isPending}
-        onChange={(value) => startTransition(() => updateInquiryStatus(inquiry.id, value))}
-      />
-    </li>
   );
 }
 

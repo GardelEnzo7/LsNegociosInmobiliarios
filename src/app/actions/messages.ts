@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { sendContactNotificationEmail } from "@/lib/email";
 
 const messageSchema = z.object({
   name: z.string().trim().min(2, "Ingresá tu nombre."),
@@ -41,32 +41,24 @@ export async function submitContactMessage(
     };
   }
 
-  const supabase = await createClient();
   const { name, contact, message, propertyId, asunto } = parsed.data;
-  const finalMessage = asunto ? `Motivo: ${asunto}\n\n${message}` : message;
 
-  const { error } = await supabase.from("messages").insert({
-    name,
-    contact,
-    message: finalMessage,
-    property_id: propertyId ? propertyId : null,
-  });
+  let property: { title: string; slug: string } | null = null;
+  if (propertyId) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("properties")
+      .select("title, slug")
+      .eq("id", propertyId)
+      .maybeSingle();
+    property = data ?? null;
+  }
 
-  if (error) {
+  try {
+    await sendContactNotificationEmail({ name, contact, message, asunto, property });
+  } catch {
     return { status: "error" };
   }
 
   return { status: "success" };
-}
-
-export async function markMessageRead(id: string, read: boolean) {
-  const supabase = await createClient();
-  await supabase.from("messages").update({ read }).eq("id", id);
-  revalidatePath("/admin/mensajes");
-}
-
-export async function deleteMessage(id: string) {
-  const supabase = await createClient();
-  await supabase.from("messages").delete().eq("id", id);
-  revalidatePath("/admin/mensajes");
 }

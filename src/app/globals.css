@@ -184,6 +184,42 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 0;
 }
 
+/* Dual-range price slider: two overlapping native <input type="range">
+   sharing one track. Each input's own hit area/track is invisible and
+   ignores pointer events; only the thumb re-enables them, so both handles
+   stay independently draggable with no JS library. Thumb size is generous
+   (22px) for comfortable touch on mobile. */
+.price-range-thumb::-webkit-slider-thumb {
+  pointer-events: auto;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-petroleo);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(28, 33, 41, 0.35);
+  cursor: pointer;
+}
+.price-range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-petroleo);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(28, 33, 41, 0.35);
+  cursor: pointer;
+}
+.price-range-thumb::-webkit-slider-runnable-track {
+  appearance: none;
+  background: transparent;
+}
+.price-range-thumb::-moz-range-track {
+  background: transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal-hidden {
     opacity: 1;

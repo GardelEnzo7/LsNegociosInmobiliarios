@@ -81,7 +81,7 @@ export function ContactForm({ properties }: { properties: PropertyOption[] }) {
 
         {properties.length > 0 ? (
           <FormField label="Propiedades relacionadas" htmlFor="propertyIds">
-            <div id="propertyIds" className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-grafito/10 p-3">
+            <div id="propertyIds" className="grid max-h-40 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-grafito/10 p-3 sm:grid-cols-2">
               {properties.map((property) => (
                 <label key={property.id} className="flex items-center gap-2 text-sm text-grafito/70">
                   <input

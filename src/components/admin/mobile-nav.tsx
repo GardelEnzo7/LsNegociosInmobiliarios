@@ -8,7 +8,7 @@ import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 import { OPERATIVE_LINKS, MANAGEMENT_LINKS } from "@/components/admin/sidebar";
 
-export function MobileNav({ unreadCount = 0, role }: { unreadCount?: number; role?: string | null }) {
+export function MobileNav({ role }: { role?: string | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const managementLinks = MANAGEMENT_LINKS.filter((link) => !link.adminOnly || role === "admin");
@@ -42,9 +42,6 @@ export function MobileNav({ unreadCount = 0, role }: { unreadCount?: number; rol
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" className="h-5 w-5">
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
-          {unreadCount > 0 ? (
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-petroleo-claro" />
-          ) : null}
         </button>
       </div>
 
@@ -84,11 +81,6 @@ export function MobileNav({ unreadCount = 0, role }: { unreadCount?: number; rol
                     >
                       <Icon className={cn("h-5 w-5 shrink-0", active ? "text-petroleo-claro" : "text-blanco-roto/40")} />
                       <span className="flex-1">{link.label}</span>
-                      {link.badge && unreadCount ? (
-                        <span className="rounded-full bg-petroleo-claro px-2 py-0.5 font-utility text-[10px] font-medium text-grafito-dark">
-                          {unreadCount}
-                        </span>
-                      ) : null}
                     </Link>
                   );
                 })}

@@ -2,20 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/site/reveal";
 import { PropertyCardCompact } from "@/components/site/property-card";
-import { getClosedProperties } from "@/lib/data/properties";
+import { getClosedProperties, getClosedPropertiesCount, getNeighborhoods } from "@/lib/data/properties";
 import { IconChart, IconHome, IconPortrait, IconUsers } from "@/components/site/icons";
 import { SITE } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "Nosotros | Laura Senmache Negocios Inmobiliarios",
-  description: "Más de 5 años acompañando operaciones de compra, venta y alquiler en Rosario.",
-};
+const DESCRIPTION = "Más de 5 años acompañando operaciones de compra, venta y alquiler en Rosario.";
 
-const METRICS = [
-  { value: "+5", label: "años en el mercado inmobiliario de Rosario" },
-  { value: "+320", label: "operaciones de compra, venta y alquiler cerradas" },
-  { value: "98%", label: "de clientes que recomienda nuestro servicio" },
-];
+export const metadata: Metadata = {
+  title: "Nosotros",
+  description: DESCRIPTION,
+  alternates: { canonical: "/nosotros" },
+  openGraph: { title: "Nosotros", description: DESCRIPTION, url: "/nosotros" },
+};
 
 const VALUES = [
   {
@@ -39,7 +37,23 @@ const VALUES = [
 ];
 
 export default async function NosotrosPage() {
-  const closed = await getClosedProperties(3);
+  const [closed, closedCount, neighborhoods] = await Promise.all([
+    getClosedProperties(3),
+    getClosedPropertiesCount(),
+    getNeighborhoods(),
+  ]);
+
+  const METRICS = [
+    { value: "+5", label: "años en el mercado inmobiliario de Rosario" },
+    {
+      value: closedCount > 0 ? `+${closedCount}` : "En curso",
+      label: "operaciones de compra, venta y alquiler cerradas",
+    },
+    {
+      value: neighborhoods.length > 0 ? `+${neighborhoods.length}` : "—",
+      label: "barrios de Rosario con propiedades publicadas",
+    },
+  ];
 
   return (
     <div className="pb-24">
