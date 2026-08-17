@@ -11,6 +11,13 @@
   --color-blanco-roto: #ffffff;
   --color-whatsapp: #25d366;
   --color-whatsapp-dark: #1ebe5a;
+
+  /* Admin-only state tones — same material-naming convention as the rest of
+     the palette (plata/grafito/piedra/petróleo). Not a semaphore: bronce
+     marks "requires a decision", terracota marks "lost/cancelled". Winning
+     states use petroleo solid, not green — see StatusPill in property-card. */
+  --color-bronce: #8a5c22;
+  --color-terracota: #9c3d29;
 }
 
 :root {
@@ -32,6 +39,8 @@
   --color-blanco-roto: var(--color-blanco-roto);
   --color-whatsapp: var(--color-whatsapp);
   --color-whatsapp-dark: var(--color-whatsapp-dark);
+  --color-bronce: var(--color-bronce);
+  --color-terracota: var(--color-terracota);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);

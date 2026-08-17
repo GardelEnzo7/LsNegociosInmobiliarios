@@ -148,6 +148,68 @@ export function IconPortrait({ className }: IconProps) {
   );
 }
 
+export function IconCalendar({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <rect x={4} y={5} width={16} height={16} rx={2} />
+      <path d="M8 3v4M16 3v4M4 10h16" />
+    </svg>
+  );
+}
+
+export function IconClock({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <circle cx={12} cy={12} r={8} />
+      <path d="M12 8v4l3 2" />
+    </svg>
+  );
+}
+
+export function IconFilter({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <path d="M4 6h16M7.5 12h9M11 18h2" />
+    </svg>
+  );
+}
+
+export function IconBell({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <path d="M6 9a6 6 0 0 1 12 0c0 4 1.4 5.3 1.8 5.8a.6.6 0 0 1-.5.9H4.7a.6.6 0 0 1-.5-.9C4.6 14.3 6 13 6 9Z" />
+      <path d="M10.3 19a1.8 1.8 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
+export function IconTag({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <path d="M3 12.4 12 3.5h6a2 2 0 0 1 2 2v6l-8.9 9a1.4 1.4 0 0 1-2 0L3 14.4a1.4 1.4 0 0 1 0-2Z" />
+      <circle cx={15.2} cy={8} r={1.1} fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function IconStatusDot({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <circle cx={12} cy={12} r={8} />
+      <circle cx={12} cy={12} r={2.6} fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function IconTable({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <rect x={3.5} y={4.5} width={17} height={15} rx={1.5} />
+      <path d="M3.5 9.5h17M9 9.5V19.5" />
+    </svg>
+  );
+}
+
 export function IconInstagram({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className={className ?? base} aria-hidden="true">

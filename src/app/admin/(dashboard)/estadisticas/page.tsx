@@ -1,5 +1,7 @@
 import { getPropertyStats, getInquiryAnalytics, getClosedDealsAnalytics } from "@/lib/data/admin";
 import { BarList } from "@/components/admin/bar-list";
+import { PageHeader } from "@/components/admin/ui/page-header";
+import { Panel } from "@/components/admin/ui/panel";
 import { OPERATION_LABELS } from "@/lib/constants";
 
 const ORIGIN_LABELS: Record<string, string> = {
@@ -26,8 +28,10 @@ export default async function AdminStatsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-900">Estadísticas</h1>
-      <p className="mt-1 text-sm text-zinc-500">Datos reales del negocio. Todavía hay poco historial, así que algunas secciones van a mostrarse vacías hasta que se acumule más actividad.</p>
+      <PageHeader
+        title="Estadísticas"
+        subtitle="Datos reales del negocio. Todavía hay poco historial, así que algunas secciones van a mostrarse vacías hasta que se acumule más actividad."
+      />
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <MiniStat label="Consultas totales" value={inquiryAnalytics.total} />
@@ -71,28 +75,28 @@ export default async function AdminStatsPage() {
 
       <Panel title="Propiedades más consultadas" className="mt-6">
         {stats.length === 0 ? (
-          <p className="text-sm text-zinc-400">Todavía no hay datos.</p>
+          <p className="text-sm text-grafito/40">Todavía no hay datos.</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-zinc-200">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+          <div className="overflow-x-auto rounded-xl border border-grafito/10">
+            <table className="w-full min-w-[480px] text-left text-sm">
+              <thead className="border-b border-grafito/10 bg-piedra/30 text-xs uppercase tracking-wide text-grafito/50">
                 <tr>
                   <th className="px-4 py-3 font-medium">Propiedad</th>
                   <th className="px-4 py-3 font-medium">Vistas</th>
                   <th className="px-4 py-3 font-medium">Consultas</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-grafito/[0.06]">
                 {stats.map((property) => (
                   <tr key={property.id}>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-zinc-900">{property.title}</p>
-                      <p className="text-xs text-zinc-500">{property.neighborhood}</p>
+                      <p className="font-medium text-grafito">{property.title}</p>
+                      <p className="text-xs text-grafito/50">{property.neighborhood}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="w-8 shrink-0 tabular-nums text-zinc-700">{property.views_count}</span>
-                        <div className="h-1.5 w-32 overflow-hidden rounded-full bg-zinc-100">
+                        <span className="w-8 shrink-0 tabular-nums text-grafito/70">{property.views_count}</span>
+                        <div className="h-1.5 w-32 overflow-hidden rounded-full bg-piedra/40">
                           <div
                             className="h-full rounded-full bg-petroleo transition-[width] duration-500 ease-out"
                             style={{ width: `${(property.views_count / maxViews) * 100}%` }}
@@ -100,7 +104,7 @@ export default async function AdminStatsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-zinc-700">{property.messages_count}</td>
+                    <td className="px-4 py-3 tabular-nums text-grafito/70">{property.messages_count}</td>
                   </tr>
                 ))}
               </tbody>
@@ -114,18 +118,9 @@ export default async function AdminStatsPage() {
 
 function MiniStat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
-      <p className="text-2xl font-semibold tabular-nums text-zinc-900">{value}</p>
-      <p className="mt-1 text-xs text-zinc-500">{label}</p>
-    </div>
-  );
-}
-
-function Panel({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-xl border border-zinc-200 bg-white p-6 ${className ?? ""}`}>
-      <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
-      <div className="mt-4">{children}</div>
+    <div className="rounded-xl border border-grafito/10 bg-blanco-roto p-4">
+      <p className="text-2xl font-semibold tabular-nums text-grafito">{value}</p>
+      <p className="mt-1 text-xs text-grafito/50">{label}</p>
     </div>
   );
 }

@@ -1,3 +1,27 @@
+/**
+ * Sistema de estados del panel — un estado no es lo mismo que un rol.
+ * Los pipelines (disponibilidad, consulta, visita) usan la escala de tierra
+ * de la marca (petróleo/bronce/terracota). Los roles de contacto son
+ * categóricos, no cambian ni son buena/mala noticia, así que llevan un
+ * tratamiento neutro de contorno, no color semántico. "Ganado" es petróleo
+ * sólido, nunca verde — ver StatusPill en property-card.tsx.
+ */
+
+export type StatusTier = "neutral" | "info" | "pending" | "won" | "lost" | "role";
+
+// Opacidades de texto elegidas para cumplir WCAG AA (>=4.5:1) sobre fondos
+// claros — grafito puro (#2b333d) tiene contraste de sobra, pero las
+// variantes atenuadas usadas para jerarquía silenciosa deben mantenerse por
+// encima de ~72% de opacidad para no caer en zona de bajo contraste.
+export const TIER_STYLES: Record<StatusTier, string> = {
+  neutral: "text-grafito/75 ring-1 ring-inset ring-grafito/20",
+  info: "bg-petroleo/[0.12] text-petroleo",
+  pending: "bg-bronce/[0.14] text-bronce",
+  won: "bg-petroleo text-blanco-roto",
+  lost: "bg-terracota/[0.14] text-terracota",
+  role: "text-grafito/75 ring-1 ring-inset ring-grafito/20",
+};
+
 export const AVAILABILITY_LABELS: Record<string, string> = {
   disponible: "Disponible",
   reservada: "Reservada",
@@ -5,11 +29,11 @@ export const AVAILABILITY_LABELS: Record<string, string> = {
   alquilada: "Alquilada",
 };
 
-export const AVAILABILITY_STYLES: Record<string, string> = {
-  disponible: "bg-emerald-50 text-emerald-700",
-  reservada: "bg-amber-50 text-amber-700",
-  vendida: "bg-zinc-100 text-zinc-500",
-  alquilada: "bg-zinc-100 text-zinc-500",
+export const AVAILABILITY_TIERS: Record<string, StatusTier> = {
+  disponible: "neutral",
+  reservada: "pending",
+  vendida: "won",
+  alquilada: "won",
 };
 
 export const INQUIRY_STATUS_LABELS: Record<string, string> = {
@@ -22,14 +46,14 @@ export const INQUIRY_STATUS_LABELS: Record<string, string> = {
   perdido: "Perdido",
 };
 
-export const INQUIRY_STATUS_STYLES: Record<string, string> = {
-  nuevo: "bg-petroleo/10 text-petroleo",
-  contactado: "bg-blue-50 text-blue-700",
-  en_seguimiento: "bg-amber-50 text-amber-700",
-  visita_coordinada: "bg-indigo-50 text-indigo-700",
-  negociacion: "bg-orange-50 text-orange-700",
-  cerrado: "bg-emerald-50 text-emerald-700",
-  perdido: "bg-red-50 text-red-600",
+export const INQUIRY_STATUS_TIERS: Record<string, StatusTier> = {
+  nuevo: "info",
+  contactado: "pending",
+  en_seguimiento: "pending",
+  visita_coordinada: "pending",
+  negociacion: "pending",
+  cerrado: "won",
+  perdido: "lost",
 };
 
 export const INQUIRY_STATUS_ORDER = [
@@ -49,11 +73,11 @@ export const VISIT_STATUS_LABELS: Record<string, string> = {
   reprogramada: "Reprogramada",
 };
 
-export const VISIT_STATUS_STYLES: Record<string, string> = {
-  programada: "bg-petroleo/10 text-petroleo",
-  realizada: "bg-emerald-50 text-emerald-700",
-  cancelada: "bg-red-50 text-red-600",
-  reprogramada: "bg-amber-50 text-amber-700",
+export const VISIT_STATUS_TIERS: Record<string, StatusTier> = {
+  programada: "info",
+  realizada: "won",
+  cancelada: "lost",
+  reprogramada: "pending",
 };
 
 export const VISIT_STATUS_ORDER = ["programada", "realizada", "cancelada", "reprogramada"] as const;
@@ -65,11 +89,28 @@ export const CONTACT_ROLE_LABELS: Record<string, string> = {
   inquilino: "Inquilino",
 };
 
-export const CONTACT_ROLE_STYLES: Record<string, string> = {
-  interesado: "bg-petroleo/10 text-petroleo",
-  propietario: "bg-indigo-50 text-indigo-700",
-  comprador: "bg-emerald-50 text-emerald-700",
-  inquilino: "bg-amber-50 text-amber-700",
+export const RENTAL_STATUS_LABELS: Record<string, string> = {
+  activo: "Activo",
+  finalizado: "Finalizado",
+};
+
+export const RENTAL_STATUS_TIERS: Record<string, StatusTier> = {
+  activo: "info",
+  finalizado: "neutral",
+};
+
+export const LISTING_STATUS_LABELS: Record<string, string> = {
+  publicada: "Publicada",
+  no_publicada: "No publicada",
+  pendiente: "Pendiente",
+  error: "Error",
+};
+
+export const LISTING_STATUS_TIERS: Record<string, StatusTier> = {
+  publicada: "won",
+  no_publicada: "neutral",
+  pendiente: "pending",
+  error: "lost",
 };
 
 export const ACTIVITY_EVENT_LABELS: Record<string, string> = {
@@ -106,4 +147,23 @@ export function formatDateTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+export function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.toDateString() === now.toDateString();
+}
+
+export function isTomorrow(iso: string): boolean {
+  const d = new Date(iso);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return d.toDateString() === tomorrow.toDateString();
+}
+
+export function isWithinDays(iso: string, days: number): boolean {
+  const d = new Date(iso).getTime();
+  const now = Date.now();
+  return d >= now && d <= now + days * 24 * 60 * 60 * 1000;
 }

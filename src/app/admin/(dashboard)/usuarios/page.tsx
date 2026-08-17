@@ -1,4 +1,5 @@
 import { UsersList } from "@/components/admin/users-list";
+import { PageHeader } from "@/components/admin/ui/page-header";
 import { getAdminProfiles } from "@/lib/data/admin";
 import { getCurrentAdminRole } from "@/lib/supabase/guards";
 
@@ -7,8 +8,8 @@ export default async function AdminUsersPage() {
 
   if (role !== "admin") {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-        <p className="text-sm text-zinc-500">
+      <div className="rounded-xl border border-dashed border-grafito/15 bg-blanco-roto p-10 text-center">
+        <p className="text-sm text-grafito/50">
           Solo un Administrador puede gestionar los usuarios del panel.
         </p>
       </div>
@@ -19,8 +20,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-900">Usuarios del panel</h1>
-      <p className="mt-1 text-sm text-zinc-500">Equipo con acceso a la gestión del negocio.</p>
+      <PageHeader title="Usuarios" subtitle="Equipo con acceso a la gestión del negocio." />
 
       <div className="mt-6 max-w-3xl">
         <UsersList profiles={profiles} />

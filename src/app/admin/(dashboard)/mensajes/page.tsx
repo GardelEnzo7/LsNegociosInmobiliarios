@@ -1,4 +1,5 @@
 import { InquiriesList } from "@/components/admin/inquiries-list";
+import { PageHeader } from "@/components/admin/ui/page-header";
 import { getAllInquiries, getActiveAdminProfiles } from "@/lib/data/admin";
 
 export default async function AdminMessagesPage() {
@@ -6,10 +7,7 @@ export default async function AdminMessagesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-900">Consultas</h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        Seguimiento comercial de las consultas recibidas desde el sitio y cargadas manualmente.
-      </p>
+      <PageHeader title="Consultas" subtitle="Seguimiento de las consultas recibidas desde el sitio y cargadas a mano." />
 
       <div className="mt-6 max-w-3xl">
         <InquiriesList inquiries={inquiries} admins={admins} />

@@ -7,6 +7,10 @@ import {
   uploadPropertyDocument,
   type DocumentFormState,
 } from "@/app/actions/property-documents";
+import { useConfirm } from "@/components/admin/ui/confirm-dialog";
+import { Panel } from "@/components/admin/ui/panel";
+import { EmptyState } from "@/components/admin/ui/empty-state";
+import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   escritura: "Escritura",
@@ -32,54 +36,56 @@ export function PropertyDocumentsPanel({ propertyId, documents }: { propertyId: 
   const action = uploadPropertyDocument.bind(null, propertyId);
   const [state, formAction, pending] = useActionState(action, initialState);
   const [isPending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   return (
-    <div>
-      <div className="rounded-lg bg-amber-50 px-4 py-3 text-xs text-amber-700">
+    <Panel>
+      <div className="rounded-lg bg-bronce/[0.12] px-4 py-3 text-xs text-bronce">
         Los documentos se guardan en almacenamiento privado. Nunca quedan accesibles por una URL pública
         permanente — se generan enlaces temporales solo para el staff logueado.
       </div>
 
-      <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-zinc-200 p-4">
-        <div>
-          <label className="text-xs font-medium text-zinc-600">Tipo</label>
-          <select name="docType" defaultValue="otro" className="mt-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm">
-            {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-zinc-600">Archivo</label>
-          <input type="file" name="file" required className="mt-1 block text-sm" />
-        </div>
-        <div className="flex-1 min-w-[160px]">
-          <label className="text-xs font-medium text-zinc-600">Notas</label>
-          <input name="notes" className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm" />
+      <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-grafito/10 p-4">
+        <FormField label="Tipo" htmlFor="docType">
+          <SelectShell>
+            <select id="docType" name="docType" defaultValue="otro" className={selectClass}>
+              {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </SelectShell>
+        </FormField>
+        <FormField label="Archivo" htmlFor="file">
+          <input id="file" type="file" name="file" required className="block text-sm" />
+        </FormField>
+        <div className="min-w-[160px] flex-1">
+          <FormField label="Notas" htmlFor="notes">
+            <input id="notes" name="notes" className={inputClass} />
+          </FormField>
         </div>
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-grafito px-4 py-2 text-sm font-medium text-white transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60"
+          className="rounded-lg bg-grafito px-4 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60"
         >
           {pending ? "Subiendo…" : "Subir documento"}
         </button>
       </form>
-      {state.error ? <p className="mt-2 text-sm text-red-600">{state.error}</p> : null}
+      {state.error ? <p className="mt-2 text-sm text-terracota">{state.error}</p> : null}
 
       {documents.length === 0 ? (
-        <p className="mt-4 text-sm text-zinc-400">Todavía no se cargaron documentos.</p>
+        <EmptyState text="Todavía no se cargaron documentos." className="mt-4" />
       ) : (
-        <ul className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white">
+        <ul className="mt-4 divide-y divide-grafito/[0.06] rounded-xl border border-grafito/10 bg-blanco-roto">
           {documents.map((doc) => (
             <li key={doc.id} className="flex items-center justify-between gap-3 p-4">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-zinc-800">
+                <p className="text-sm font-medium text-grafito/80">
                   {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
                 </p>
-                <p className="truncate text-xs text-zinc-500">
+                <p className="truncate text-xs text-grafito/50">
                   {doc.notes || doc.file_path.split("/").pop()}
                   {doc.uploaded_by_profile ? ` · ${doc.uploaded_by_profile.full_name}` : ""}
                 </p>
@@ -101,12 +107,11 @@ export function PropertyDocumentsPanel({ propertyId, documents }: { propertyId: 
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => {
-                    if (confirm("¿Eliminar este documento?")) {
-                      startTransition(() => deletePropertyDocument(doc.id, propertyId, doc.file_path));
-                    }
+                  onClick={async () => {
+                    const ok = await confirm({ title: "¿Eliminar este documento?", confirmLabel: "Eliminar", destructive: true });
+                    if (ok) startTransition(() => deletePropertyDocument(doc.id, propertyId, doc.file_path));
                   }}
-                  className="text-xs font-medium text-red-600 hover:underline"
+                  className="text-xs font-medium text-terracota hover:underline"
                 >
                   Eliminar
                 </button>
@@ -115,6 +120,6 @@ export function PropertyDocumentsPanel({ propertyId, documents }: { propertyId: 
           ))}
         </ul>
       )}
-    </div>
+    </Panel>
   );
 }

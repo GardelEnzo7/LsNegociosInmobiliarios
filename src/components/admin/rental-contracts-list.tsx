@@ -3,17 +3,13 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { deleteContract, updateContractStatus } from "@/app/actions/rentals";
+import { RENTAL_STATUS_LABELS, RENTAL_STATUS_TIERS } from "@/lib/admin/constants";
+import { StatusSelect } from "@/components/admin/status-badge";
+import { useConfirm } from "@/components/admin/ui/confirm-dialog";
+import { EmptyState } from "@/components/admin/ui/empty-state";
 import { cn, formatPrice } from "@/lib/utils";
 
-const STATUS_LABELS: Record<string, string> = {
-  activo: "Activo",
-  finalizado: "Finalizado",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  activo: "bg-petroleo/10 text-petroleo",
-  finalizado: "bg-zinc-100 text-zinc-500",
-};
+const RENTAL_STATUS_OPTIONS = Object.entries(RENTAL_STATUS_LABELS).map(([value, label]) => ({ value, label }));
 
 type Contract = {
   id: string;
@@ -30,11 +26,7 @@ type Contract = {
 
 export function RentalContractsList({ contracts }: { contracts: Contract[] }) {
   if (contracts.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-        <p className="text-sm text-zinc-500">Todavía no hay administraciones cargadas.</p>
-      </div>
-    );
+    return <EmptyState text="Todavía no hay administraciones cargadas." bordered />;
   }
 
   return (
@@ -48,11 +40,12 @@ export function RentalContractsList({ contracts }: { contracts: Contract[] }) {
 
 function ContractCard({ contract }: { contract: Contract }) {
   const [isPending, startTransition] = useTransition();
+  const confirm = useConfirm();
 
   return (
     <div
       className={cn(
-        "rounded-xl border border-zinc-200 bg-white p-5 transition-opacity duration-150",
+        "rounded-xl border border-grafito/10 bg-blanco-roto p-5 transition-opacity duration-150",
         isPending && "opacity-50",
       )}
     >
@@ -60,31 +53,24 @@ function ContractCard({ contract }: { contract: Contract }) {
         <div>
           <Link
             href={`/admin/administraciones/${contract.id}`}
-            className="font-medium text-zinc-900 hover:text-petroleo"
+            className="font-medium text-grafito hover:text-petroleo"
           >
             {contract.properties?.title ?? "Propiedad eliminada"}
           </Link>
-          <p className="mt-0.5 text-xs text-zinc-500">
+          <p className="mt-0.5 text-xs text-grafito/50">
             Cliente: {contract.owner?.full_name ?? "—"} · Inquilino: {contract.tenant?.full_name ?? "—"}
           </p>
-          <p className="mt-0.5 text-xs text-zinc-400">
+          <p className="mt-0.5 text-xs text-grafito/40">
             {contract.start_date} → {contract.end_date ?? "en curso"}
           </p>
         </div>
-        <select
-          defaultValue={contract.status}
-          onChange={(event) => startTransition(() => updateContractStatus(contract.id, event.target.value))}
-          className={cn(
-            "rounded-full border-0 px-2.5 py-1 text-xs font-medium outline-none",
-            STATUS_STYLES[contract.status],
-          )}
-        >
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <StatusSelect
+          value={contract.status}
+          tier={RENTAL_STATUS_TIERS[contract.status]}
+          options={RENTAL_STATUS_OPTIONS}
+          disabled={isPending}
+          onChange={(value) => startTransition(() => updateContractStatus(contract.id, value))}
+        />
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-grafito">
@@ -107,12 +93,11 @@ function ContractCard({ contract }: { contract: Contract }) {
         </Link>
         <button
           type="button"
-          onClick={() => {
-            if (confirm("¿Eliminar esta administración?")) {
-              startTransition(() => deleteContract(contract.id));
-            }
+          onClick={async () => {
+            const ok = await confirm({ title: "¿Eliminar esta administración?", confirmLabel: "Eliminar", destructive: true });
+            if (ok) startTransition(() => deleteContract(contract.id));
           }}
-          className="text-xs font-medium text-red-600 hover:underline"
+          className="text-xs font-medium text-terracota hover:underline"
         >
           Eliminar
         </button>

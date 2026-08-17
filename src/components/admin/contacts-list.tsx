@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CONTACT_ROLE_LABELS, CONTACT_ROLE_STYLES } from "@/lib/admin/constants";
-import { cn } from "@/lib/utils";
+import { CONTACT_ROLE_LABELS } from "@/lib/admin/constants";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/ui/empty-state";
 
 type Contact = {
   id: string;
@@ -34,15 +35,15 @@ export function ContactsList({ contacts }: { contacts: Contact[] }) {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Buscar por nombre, teléfono o email…"
-        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 outline-none transition-colors duration-200 ease-out focus:border-petroleo"
+        className="w-full rounded-lg border border-grafito/10 px-3 py-2.5 text-sm text-grafito outline-none transition-colors duration-150 ease-out focus:border-petroleo"
       />
 
       {filtered.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-          <p className="text-sm text-zinc-500">
-            {contacts.length === 0 ? "Todavía no hay clientes cargados." : "Ningún cliente coincide con la búsqueda."}
-          </p>
-        </div>
+        <EmptyState
+          className="mt-4"
+          bordered
+          text={contacts.length === 0 ? "Todavía no hay clientes cargados." : "Ningún cliente coincide con la búsqueda."}
+        />
       ) : (
         <div className="mt-4 space-y-3">
           {filtered.map((contact) => {
@@ -54,27 +55,19 @@ export function ContactsList({ contacts }: { contacts: Contact[] }) {
               <Link
                 key={contact.id}
                 href={`/admin/clientes/${contact.id}`}
-                className="block rounded-xl border border-zinc-200 bg-white p-5 transition-shadow duration-150 ease-out hover:shadow-[0_4px_16px_-4px_rgba(28,33,41,0.12)]"
+                className="block rounded-2xl bg-blanco-roto p-5 ring-1 ring-grafito/[0.06] transition-shadow duration-200 ease-out hover:shadow-[0_12px_24px_-10px_rgba(28,33,41,0.22)]"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-zinc-900">{contact.full_name}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">
+                    <p className="font-display text-[16px] text-grafito" style={{ fontWeight: 480 }}>{contact.full_name}</p>
+                    <p className="mt-0.5 text-xs text-grafito/50">
                       {[contact.contact_phone, contact.contact_email].filter(Boolean).join(" · ") ||
                         "Sin datos de contacto"}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {contact.contact_roles.map((r) => (
-                      <span
-                        key={r.role}
-                        className={cn(
-                          "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                          CONTACT_ROLE_STYLES[r.role],
-                        )}
-                      >
-                        {CONTACT_ROLE_LABELS[r.role] ?? r.role}
-                      </span>
+                      <StatusBadge key={r.role} tier="role" label={CONTACT_ROLE_LABELS[r.role] ?? r.role} />
                     ))}
                   </div>
                 </div>

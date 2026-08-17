@@ -33,6 +33,16 @@ export async function getAllInquiries() {
   return data ?? [];
 }
 
+export async function getAdminProfileForCurrentUser() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("admin_profiles")
+    .select("id, full_name, role")
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle();
+  return data;
+}
+
 export async function getActiveAdminProfiles() {
   const supabase = await createClient();
   const { data } = await supabase
@@ -325,7 +335,7 @@ export async function getAllVisits() {
     .select(
       "id, scheduled_at, status, notes, property:properties(id, title, slug), contact:contacts(id, full_name), assigned:admin_profiles(id, full_name)",
     )
-    .order("scheduled_at", { ascending: false });
+    .order("scheduled_at", { ascending: true });
 
   return data ?? [];
 }
@@ -333,6 +343,40 @@ export async function getAllVisits() {
 export async function getContactsForSelect() {
   const supabase = await createClient();
   const { data } = await supabase.from("contacts").select("id, full_name").order("full_name");
+  return data ?? [];
+}
+
+export async function getInquiriesNeedingAttention(limit = 5) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("inquiries")
+    .select(
+      "id, status, origin, created_at, contact:contacts(id, full_name), property:properties(id, title, slug), assigned:admin_profiles(id, full_name)",
+    )
+    .not("status", "in", "(cerrado,perdido)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return data ?? [];
+}
+
+export async function getTodayVisits() {
+  const supabase = await createClient();
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  const { data } = await supabase
+    .from("visits")
+    .select(
+      "id, scheduled_at, status, property:properties(id, title, slug), contact:contacts(id, full_name), assigned:admin_profiles(id, full_name)",
+    )
+    .in("status", ["programada", "reprogramada"])
+    .gte("scheduled_at", start.toISOString())
+    .lte("scheduled_at", end.toISOString())
+    .order("scheduled_at", { ascending: true });
+
   return data ?? [];
 }
 

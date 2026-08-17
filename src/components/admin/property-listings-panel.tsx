@@ -2,7 +2,9 @@
 
 import { useTransition } from "react";
 import { upsertPropertyListing } from "@/app/actions/property-listings";
-import { cn } from "@/lib/utils";
+import { LISTING_STATUS_LABELS, LISTING_STATUS_TIERS } from "@/lib/admin/constants";
+import { StatusBadge, StatusSelect } from "@/components/admin/status-badge";
+import { Panel } from "@/components/admin/ui/panel";
 
 const CHANNEL_LABELS: Record<string, string> = {
   web_ls: "Sitio web LS",
@@ -11,19 +13,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   otro: "Otro portal",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  publicada: "Publicada",
-  no_publicada: "No publicada",
-  pendiente: "Pendiente",
-  error: "Error",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  publicada: "bg-emerald-50 text-emerald-700",
-  no_publicada: "bg-zinc-100 text-zinc-500",
-  pendiente: "bg-amber-50 text-amber-700",
-  error: "bg-red-50 text-red-600",
-};
+const LISTING_STATUS_OPTIONS = Object.entries(LISTING_STATUS_LABELS).map(([value, label]) => ({ value, label }));
 
 const INTEGRATION_NOTES: Record<string, string> = {
   zonaprop:
@@ -51,8 +41,8 @@ export function PropertyListingsPanel({
   const byChannel = new Map(listings.map((l) => [l.channel, l]));
 
   return (
-    <div>
-      <div className="rounded-lg bg-amber-50 px-4 py-3 text-xs text-amber-700">
+    <Panel>
+      <div className="rounded-lg bg-bronce/[0.12] px-4 py-3 text-xs text-bronce">
         No hay integraciones automáticas activas todavía. Esta sección es un panel de seguimiento manual,
         preparado para conectarse a APIs oficiales cuando estén disponibles las credenciales.
       </div>
@@ -82,7 +72,7 @@ export function PropertyListingsPanel({
           );
         })}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -108,45 +98,35 @@ function ListingRow({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
+    <div className="rounded-xl border border-grafito/10 bg-blanco-roto p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-medium text-zinc-800">{label}</p>
+        <p className="text-sm font-medium text-grafito/80">{label}</p>
         {readOnly ? (
-          <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", STATUS_STYLES[status])}>
-            {STATUS_LABELS[status]}
-          </span>
+          <StatusBadge tier={LISTING_STATUS_TIERS[status]} label={LISTING_STATUS_LABELS[status]} />
         ) : (
-          <select
-            defaultValue={status}
+          <StatusSelect
+            value={status}
+            tier={LISTING_STATUS_TIERS[status]}
+            options={LISTING_STATUS_OPTIONS}
             disabled={isPending}
-            onChange={(event) =>
+            onChange={(value) =>
               startTransition(() =>
                 upsertPropertyListing(propertyId!, channel!, {
-                  status: event.target.value,
+                  status: value,
                   externalUrl: externalUrl ?? undefined,
                   notes: notes ?? undefined,
                 }),
               )
             }
-            className={cn(
-              "rounded-full border-0 px-2.5 py-1 text-xs font-medium outline-none",
-              STATUS_STYLES[status],
-            )}
-          >
-            {Object.entries(STATUS_LABELS).map(([value, l]) => (
-              <option key={value} value={value}>
-                {l}
-              </option>
-            ))}
-          </select>
+          />
         )}
       </div>
       {readOnly ? (
-        <p className="mt-2 text-xs text-zinc-400">
+        <p className="mt-2 text-xs text-grafito/40">
           Se actualiza automáticamente según el estado de publicación del sitio.
         </p>
       ) : integrationNote ? (
-        <p className="mt-2 text-xs text-zinc-400">{integrationNote}</p>
+        <p className="mt-2 text-xs text-grafito/40">{integrationNote}</p>
       ) : null}
     </div>
   );

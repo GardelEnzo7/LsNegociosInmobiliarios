@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   assignInquiry,
   convertInquiryToContact,
@@ -10,8 +10,18 @@ import {
   updateInquiryStatus,
 } from "@/app/actions/inquiries";
 import { deleteMessage } from "@/app/actions/messages";
-import { INQUIRY_STATUS_LABELS, INQUIRY_STATUS_STYLES, INQUIRY_STATUS_ORDER, formatDateTime } from "@/lib/admin/constants";
+import { INQUIRY_STATUS_LABELS, INQUIRY_STATUS_TIERS, INQUIRY_STATUS_ORDER, formatDateTime } from "@/lib/admin/constants";
+import { StatusSelect } from "@/components/admin/status-badge";
+import { useConfirm } from "@/components/admin/ui/confirm-dialog";
+import { EmptyState } from "@/components/admin/ui/empty-state";
 import { cn } from "@/lib/utils";
+
+const INQUIRY_STATUS_OPTIONS = INQUIRY_STATUS_ORDER.map((status) => ({
+  value: status,
+  label: INQUIRY_STATUS_LABELS[status],
+}));
+
+const CLOSED_STATUSES = ["cerrado", "perdido"];
 
 type Inquiry = {
   id: string;
@@ -28,23 +38,26 @@ type Inquiry = {
 type AdminOption = { id: string; full_name: string };
 
 export function InquiriesList({ inquiries, admins }: { inquiries: Inquiry[]; admins: AdminOption[] }) {
-  const [filter, setFilter] = useState<string>("todas");
+  const [filter, setFilter] = useState<string>("pendientes");
 
-  const filtered = filter === "todas" ? inquiries : inquiries.filter((i) => i.status === filter);
+  const pendingCount = useMemo(() => inquiries.filter((i) => !CLOSED_STATUSES.includes(i.status)).length, [inquiries]);
+
+  const filtered =
+    filter === "todas"
+      ? inquiries
+      : filter === "pendientes"
+        ? inquiries.filter((i) => !CLOSED_STATUSES.includes(i.status))
+        : inquiries.filter((i) => i.status === filter);
 
   if (inquiries.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-        <p className="text-sm text-zinc-500">Todavía no llegaron consultas desde el sitio.</p>
-      </div>
-    );
+    return <EmptyState bordered text="Todavía no llegaron consultas desde el sitio." />;
   }
 
   return (
     <div>
       <div className="flex flex-wrap gap-1.5">
-        <FilterPill active={filter === "todas"} onClick={() => setFilter("todas")}>
-          Todas ({inquiries.length})
+        <FilterPill active={filter === "pendientes"} onClick={() => setFilter("pendientes")}>
+          En seguimiento ({pendingCount})
         </FilterPill>
         {INQUIRY_STATUS_ORDER.map((status) => {
           const count = inquiries.filter((i) => i.status === status).length;
@@ -55,13 +68,20 @@ export function InquiriesList({ inquiries, admins }: { inquiries: Inquiry[]; adm
             </FilterPill>
           );
         })}
+        <FilterPill active={filter === "todas"} onClick={() => setFilter("todas")}>
+          Todas ({inquiries.length})
+        </FilterPill>
       </div>
 
-      <div className="mt-4 space-y-3">
-        {filtered.map((inquiry) => (
-          <InquiryCard key={inquiry.id} inquiry={inquiry} admins={admins} />
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <EmptyState className="mt-6" text="No hay consultas en esta vista." />
+      ) : (
+        <div className="mt-4 space-y-3">
+          {filtered.map((inquiry) => (
+            <InquiryCard key={inquiry.id} inquiry={inquiry} admins={admins} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -80,8 +100,8 @@ function FilterPill({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ease-out",
-        active ? "bg-grafito text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200",
+        "rounded-full px-3 py-1.5 font-utility text-[11px] font-medium uppercase tracking-[0.06em] transition-colors duration-150 ease-out",
+        active ? "bg-grafito text-blanco-roto" : "bg-piedra/40 text-grafito/55 hover:bg-piedra/60",
       )}
     >
       {children}
@@ -92,13 +112,14 @@ function FilterPill({
 function InquiryCard({ inquiry, admins }: { inquiry: Inquiry; admins: AdminOption[] }) {
   const [isPending, startTransition] = useTransition();
   const [notes, setNotes] = useState(inquiry.internal_notes ?? "");
+  const confirm = useConfirm();
   const clientName = inquiry.contact?.full_name ?? inquiry.message?.name ?? "Sin identificar";
 
   return (
     <div
       className={cn(
-        "rounded-xl border bg-white p-5 transition-opacity duration-150",
-        inquiry.status === "nuevo" ? "border-petroleo/30 bg-petroleo/[0.03]" : "border-zinc-200",
+        "rounded-2xl bg-blanco-roto p-5 ring-1 transition-opacity duration-150",
+        inquiry.status === "nuevo" ? "ring-petroleo/25 bg-petroleo/[0.02]" : "ring-grafito/[0.06]",
         isPending && "opacity-50",
       )}
     >
@@ -106,14 +127,14 @@ function InquiryCard({ inquiry, admins }: { inquiry: Inquiry; admins: AdminOptio
         <div>
           <div className="flex items-center gap-2">
             {inquiry.contact ? (
-              <Link href={`/admin/clientes/${inquiry.contact.id}`} className="font-medium text-zinc-900 hover:underline">
+              <Link href={`/admin/clientes/${inquiry.contact.id}`} className="font-medium text-grafito hover:underline">
                 {clientName}
               </Link>
             ) : (
-              <p className="font-medium text-zinc-900">{clientName}</p>
+              <p className="font-medium text-grafito">{clientName}</p>
             )}
           </div>
-          {inquiry.message ? <p className="mt-0.5 text-xs text-zinc-500">{inquiry.message.contact}</p> : null}
+          {inquiry.message ? <p className="mt-0.5 text-xs text-grafito/50">{inquiry.message.contact}</p> : null}
           {inquiry.property ? (
             <Link
               href={`/admin/propiedades/${inquiry.property.id}`}
@@ -122,38 +143,31 @@ function InquiryCard({ inquiry, admins }: { inquiry: Inquiry; admins: AdminOptio
               Sobre: {inquiry.property.title}
             </Link>
           ) : null}
-          <p className="mt-1 text-xs text-zinc-400">
+          <p className="mt-1 text-xs text-grafito/40">
             {inquiry.origin} · {formatDateTime(inquiry.created_at)}
           </p>
         </div>
 
-        <select
+        <StatusSelect
           value={inquiry.status}
-          onChange={(event) => startTransition(() => updateInquiryStatus(inquiry.id, event.target.value))}
-          className={cn(
-            "rounded-full border-0 px-2.5 py-1 text-xs font-medium outline-none",
-            INQUIRY_STATUS_STYLES[inquiry.status],
-          )}
-        >
-          {INQUIRY_STATUS_ORDER.map((status) => (
-            <option key={status} value={status}>
-              {INQUIRY_STATUS_LABELS[status]}
-            </option>
-          ))}
-        </select>
+          tier={INQUIRY_STATUS_TIERS[inquiry.status]}
+          options={INQUIRY_STATUS_OPTIONS}
+          disabled={isPending}
+          onChange={(value) => startTransition(() => updateInquiryStatus(inquiry.id, value))}
+        />
       </div>
 
       {inquiry.message ? (
-        <p className="mt-3 text-sm leading-relaxed text-zinc-700">{inquiry.message.message}</p>
+        <p className="mt-3 text-sm leading-relaxed text-grafito/70">{inquiry.message.message}</p>
       ) : null}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="text-xs font-medium text-zinc-500">Responsable</label>
+          <label className="text-xs font-medium text-grafito/50">Responsable</label>
           <select
             defaultValue={inquiry.assigned?.id ?? ""}
             onChange={(event) => startTransition(() => assignInquiry(inquiry.id, event.target.value || null))}
-            className="mt-1 w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm text-zinc-700 outline-none focus:border-petroleo"
+            className="mt-1 w-full rounded-lg border border-grafito/10 px-2.5 py-1.5 text-sm text-grafito outline-none focus:border-petroleo"
           >
             <option value="">Sin asignar</option>
             {admins.map((admin) => (
@@ -164,13 +178,13 @@ function InquiryCard({ inquiry, admins }: { inquiry: Inquiry; admins: AdminOptio
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-zinc-500">Notas internas</label>
+          <label className="text-xs font-medium text-grafito/50">Notas internas</label>
           <input
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             onBlur={() => startTransition(() => updateInquiryNotes(inquiry.id, notes))}
             placeholder="Agregar nota…"
-            className="mt-1 w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm text-zinc-700 outline-none focus:border-petroleo"
+            className="mt-1 w-full rounded-lg border border-grafito/10 px-2.5 py-1.5 text-sm text-grafito outline-none focus:border-petroleo"
           />
         </div>
       </div>
@@ -182,19 +196,20 @@ function InquiryCard({ inquiry, admins }: { inquiry: Inquiry; admins: AdminOptio
             onClick={() => startTransition(() => convertInquiryToContact(inquiry.id))}
             className="text-xs font-medium text-grafito hover:underline"
           >
-            Convertir a cliente
+            Crear cliente
           </button>
         ) : null}
         <button
           type="button"
-          onClick={() => {
-            if (confirm("¿Eliminar esta consulta?")) {
+          onClick={async () => {
+            const ok = await confirm({ title: "¿Eliminar esta consulta?", confirmLabel: "Eliminar", destructive: true });
+            if (ok) {
               startTransition(() =>
                 inquiry.message ? deleteMessage(inquiry.message.id) : deleteInquiry(inquiry.id),
               );
             }
           }}
-          className="text-xs font-medium text-red-600 hover:underline"
+          className="text-xs font-medium text-terracota hover:underline"
         >
           Eliminar
         </button>

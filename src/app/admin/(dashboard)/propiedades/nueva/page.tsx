@@ -1,10 +1,10 @@
 import { PropertyForm } from "@/components/admin/property-form";
+import { PageHeader } from "@/components/admin/ui/page-header";
 
 export default function NewPropertyPage() {
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-900">Nueva propiedad</h1>
-      <p className="mt-1 text-sm text-zinc-500">Completá los datos para publicarla en el sitio.</p>
+      <PageHeader title="Publicar propiedad" subtitle="Completá los datos para publicarla en el sitio." />
 
       <div className="mt-6 max-w-3xl">
         <PropertyForm />
