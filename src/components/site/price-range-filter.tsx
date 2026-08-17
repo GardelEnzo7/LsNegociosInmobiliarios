@@ -117,10 +117,14 @@ export function PriceRangeFilter({
     : "w-full rounded-xl border border-piedra bg-blanco-roto px-4 py-3 sm:w-80";
 
   if (!bounds || !displayCurrency) {
+    // No hay slider que mostrar: mismo alto de línea que Tipo/Operación/Zona
+    // (flex-1, no flex-[1.4] — ese ancho extra es solo para cuando el
+    // slider realmente aparece) y el mismo tratamiento visual de "valor
+    // vacío" que usan esos otros campos (CustomSelect), en una sola línea.
     return (
-      <div className={wrapperClass}>
+      <div className={isHero ? "flex flex-1 flex-col gap-1 px-5 py-4" : "w-full sm:w-36"}>
         {label}
-        <p className="font-body text-sm text-grafito/40">Todavía no hay propiedades con precio cargado.</p>
+        <span className="truncate font-body text-sm text-grafito/45">Sin precios</span>
       </div>
     );
   }
