@@ -14,10 +14,9 @@ Variables de entorno requeridas en `.env.local` (ver `.env.local.example`):
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-NEXT_PUBLIC_SITE_URL=
 ```
 
-`NEXT_PUBLIC_SITE_URL` es el dominio real de producción (sin barra final), usado para `metadataBase`, canonical, `sitemap.xml`, `robots.txt` y Open Graph. Si se omite, usa `https://inmobiliariasenmache.com.ar`; aun así conviene configurarla explícitamente en el hosting.
+El dominio de producción (`https://inmobiliariasenmache.com.ar`) está hardcodeado como `SITE_URL` en `src/lib/constants.ts` — usado para `metadataBase`, canonical, `sitemap.xml`, `robots.txt` y Open Graph. A propósito no se lee de ninguna variable de entorno: este sitio tiene un único dominio de producción, y una env var (sobre todo en Netlify, que auto-popula variables con el subdominio `*.netlify.app`) es una fuente de errores, no de flexibilidad, para ese único valor.
 
 `NEXT_PUBLIC_DEMO_MODE=true` es opcional y solo para demos/portfolio: muestra un aviso de "cuenta de prueba" en `/admin/login` sin ninguna credencial real embebida. Dejar sin definir en producción.
 

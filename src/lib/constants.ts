@@ -1,6 +1,12 @@
-export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || "https://inmobiliariasenmache.com.ar"
-).replace(/\/$/, "");
+/** Canonical production domain — hardcoded on purpose, not sourced from
+ * any environment variable. This app has exactly one production domain,
+ * and Netlify auto-populates build-time vars (its own URL/DEPLOY_URL/
+ * DEPLOY_PRIME_URL, and previously NEXT_PUBLIC_SITE_URL in this project's
+ * dashboard settings) with the *.netlify.app subdomain unless someone
+ * remembers to override them — that's exactly how netlify.app leaked into
+ * metadataBase, canonical URLs, Open Graph, sitemap.xml and robots.txt.
+ * Trusting an env var here has no upside and a real footgun, so don't. */
+export const SITE_URL = "https://inmobiliariasenmache.com.ar";
 
 export const SITE = {
   name: "Laura Senmache Negocios Inmobiliarios",
