@@ -19,6 +19,16 @@ export function jsonLdString(data: unknown) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
+/** Splits free-form copy into paragraphs on blank lines, trimming each one
+ * and dropping empties — used to render a single stored bio/text field as
+ * multiple <p> blocks instead of one run-on paragraph. */
+export function splitParagraphs(text: string): string[] {
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
 /** Lowercase, accent-free, hyphen-separated slug — e.g.
  * `slugify("Casa en Abasto - Ocampo 1502")` -> `"casa-en-abasto-ocampo-1502"`.
  * Used to auto-suggest a property's URL slug from its title. */

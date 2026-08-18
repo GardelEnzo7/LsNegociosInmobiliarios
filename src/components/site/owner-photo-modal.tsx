@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { PropertyImage } from "@/components/site/property-image";
 import { IconExpand, IconPortrait } from "@/components/site/icons";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { splitParagraphs } from "@/lib/utils";
 
 type OwnerPhotoModalProps = {
   photoUrl: string | null;
@@ -141,9 +142,13 @@ export function OwnerPhotoModal({ photoUrl, photoAlt, name, license, bio, quote 
                   <p className="mt-3 font-utility text-[12px] uppercase tracking-[0.16em] text-petroleo">
                     Fundadora · {license}
                   </p>
-                  <p className="mt-7 max-w-md font-body text-base leading-relaxed text-grafito/70 sm:text-lg">
-                    {bio}
-                  </p>
+                  <div className="mt-7 max-w-md space-y-3">
+                    {splitParagraphs(bio).map((paragraph, index) => (
+                      <p key={index} className="font-body text-base leading-relaxed text-grafito/70 sm:text-lg">
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
                   {quote ? (
                     <p className="mt-8 max-w-md border-l-2 border-petroleo/40 pl-5 font-display text-lg italic leading-snug text-grafito/80">
                       &ldquo;{quote}&rdquo;

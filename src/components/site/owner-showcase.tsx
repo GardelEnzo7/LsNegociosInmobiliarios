@@ -2,9 +2,10 @@ import { Reveal } from "@/components/site/reveal";
 import { OwnerPhotoModal } from "@/components/site/owner-photo-modal";
 import { getAgencyProfile } from "@/lib/data/showcase";
 import { SITE } from "@/lib/constants";
+import { splitParagraphs } from "@/lib/utils";
 
 const DEFAULT_BIO =
-  "Más de 5 años acompañando a familias rosarinas a comprar, vender y alquilar con confianza.";
+  "¡Hola! Mi nombre es Laura Senmache. Soy Licenciada en Dirección y Gestión de Bienes, egresada de la UCA, con más de 6 años de experiencia en el rubro.\n\nMi principal objetivo es acompañarte en cada proceso y negociación, brindándote seguridad y confianza en cada operación.";
 
 /**
  * Editorial two-column layout, no card chrome around the photo/copy — just
@@ -50,9 +51,13 @@ export async function OwnerShowcase() {
             <p className="mt-3 font-utility text-[12px] uppercase tracking-[0.16em] text-petroleo">
               Fundadora · {license}
             </p>
-            <p className="mx-auto mt-6 max-w-md font-body text-base leading-relaxed text-grafito/70 lg:mx-0">
-              {bio}
-            </p>
+            <div className="mx-auto mt-6 max-w-md space-y-3 lg:mx-0">
+              {splitParagraphs(bio).map((paragraph, index) => (
+                <p key={index} className="font-body text-base leading-relaxed text-grafito/70">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
             {quote ? (
               <p className="mx-auto mt-8 max-w-md border-l-2 border-petroleo/40 pl-5 text-left font-display text-lg italic leading-snug text-grafito/80 lg:mx-0">
                 &ldquo;{quote}&rdquo;
