@@ -13,6 +13,16 @@ export function IconBed({ className }: IconProps) {
   );
 }
 
+export function IconRooms({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">
+      <path d="M6 20V4.6a1 1 0 0 1 1.2-.98l9 1.8a1 1 0 0 1 .8.98V20" />
+      <path d="M4 20h16" />
+      <path d="M13.5 12.5v.01" />
+    </svg>
+  );
+}
+
 export function IconBath({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className={className ?? base} aria-hidden="true">

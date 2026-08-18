@@ -410,6 +410,7 @@ export type Database = {
           price: number
           professional_use: boolean
           property_type: string
+          rooms: number | null
           slug: string
           status: string
           title: string
@@ -442,6 +443,7 @@ export type Database = {
           price: number
           professional_use?: boolean
           property_type: string
+          rooms?: number | null
           slug: string
           status?: string
           title: string
@@ -474,6 +476,7 @@ export type Database = {
           price?: number
           professional_use?: boolean
           property_type?: string
+          rooms?: number | null
           slug?: string
           status?: string
           title?: string

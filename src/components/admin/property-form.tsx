@@ -212,6 +212,9 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
           <FormField label="M² cubiertos" htmlFor="m2Covered">
             <input id="m2Covered" name="m2Covered" type="number" min={0} defaultValue={property?.m2_covered ?? ""} className={inputClass} />
           </FormField>
+          <FormField label="Ambientes" htmlFor="rooms">
+            <input id="rooms" name="rooms" type="number" min={1} defaultValue={property?.rooms ?? ""} className={inputClass} />
+          </FormField>
           <FormField label="Dormitorios" htmlFor="bedrooms">
             <input id="bedrooms" name="bedrooms" type="number" min={0} defaultValue={property?.bedrooms ?? ""} className={inputClass} />
           </FormField>

@@ -6,7 +6,7 @@ import { PropertyGallery } from "@/components/site/property-gallery";
 import { PropertyCard } from "@/components/site/property-card";
 import { Reveal } from "@/components/site/reveal";
 import { TrackPropertyView } from "@/components/site/track-property-view";
-import { IconArea, IconBath, IconBed, IconKey, IconPin } from "@/components/site/icons";
+import { IconArea, IconBath, IconBed, IconKey, IconPin, IconRooms } from "@/components/site/icons";
 import {
   OPERATION_LABELS,
   ORIENTATION_LABELS,
@@ -80,6 +80,9 @@ export default async function PropertyDetailPage({ params }: { params: Params })
   const specs = [
     property.m2_total ? { icon: IconArea, value: `${property.m2_total} m²`, label: "tot." } : null,
     property.m2_covered ? { icon: IconArea, value: `${property.m2_covered} m²`, label: "cub." } : null,
+    property.rooms
+      ? { icon: IconRooms, value: `${property.rooms}`, label: property.rooms > 1 ? "ambientes" : "ambiente" }
+      : null,
     property.bedrooms ? { icon: IconBed, value: `${property.bedrooms}`, label: "dorm." } : null,
     property.bathrooms
       ? { icon: IconBath, value: `${property.bathrooms}`, label: property.bathrooms > 1 ? "baños" : "baño" }
@@ -114,6 +117,7 @@ export default async function PropertyDetailPage({ params }: { params: Params })
     additionalProperty: [
       property.m2_total ? { "@type": "PropertyValue", name: "Superficie total", value: `${property.m2_total} m²` } : null,
       property.m2_covered ? { "@type": "PropertyValue", name: "Superficie cubierta", value: `${property.m2_covered} m²` } : null,
+      property.rooms ? { "@type": "PropertyValue", name: "Ambientes", value: property.rooms } : null,
       property.bedrooms ? { "@type": "PropertyValue", name: "Dormitorios", value: property.bedrooms } : null,
       property.bathrooms ? { "@type": "PropertyValue", name: "Baños", value: property.bathrooms } : null,
       property.has_garage ? { "@type": "PropertyValue", name: "Cochera", value: "Sí" } : null,

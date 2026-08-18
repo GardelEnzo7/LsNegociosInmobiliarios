@@ -2,13 +2,14 @@ import Link from "next/link";
 import type { PropertyWithImages } from "@/lib/data/properties";
 import { AVAILABILITY_LABELS, OPERATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { cn, formatPrice } from "@/lib/utils";
-import { IconArea, IconBath, IconBed, IconPin } from "@/components/site/icons";
+import { IconArea, IconBath, IconBed, IconPin, IconRooms } from "@/components/site/icons";
 import { PropertyImage } from "@/components/site/property-image";
 
 export function PropertyCard({ property }: { property: PropertyWithImages }) {
   const cover = property.property_images[0];
   const isClosed = property.availability !== "disponible";
   const specs = [
+    property.rooms ? { icon: IconRooms, value: `${property.rooms}` } : null,
     property.bedrooms ? { icon: IconBed, value: `${property.bedrooms}` } : null,
     property.bathrooms ? { icon: IconBath, value: `${property.bathrooms}` } : null,
     property.m2_total ? { icon: IconArea, value: `${property.m2_total} m²` } : null,
