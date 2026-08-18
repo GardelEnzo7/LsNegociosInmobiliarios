@@ -1,0 +1,18 @@
+# Force the default lsnegociosinmobiliarios.netlify.app domain to permanently
+# redirect to the official custom domain. Only matches that specific
+# netlify.app hostname — inmobiliariasenmache.com.ar and its www subdomain
+# are never matched here, so this can't create a redirect loop with them.
+# `force = true` is required: without it Netlify would serve the matching
+# page locally instead of redirecting, since the same routes exist on both
+# domains. Query strings and the path (":splat") are preserved automatically.
+[[redirects]]
+  from = "https://lsnegociosinmobiliarios.netlify.app/*"
+  to = "https://inmobiliariasenmache.com.ar/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://lsnegociosinmobiliarios.netlify.app/*"
+  to = "https://inmobiliariasenmache.com.ar/:splat"
+  status = 301
+  force = true
