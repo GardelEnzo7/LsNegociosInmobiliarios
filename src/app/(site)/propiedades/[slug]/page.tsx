@@ -11,6 +11,7 @@ import {
   OPERATION_LABELS,
   ORIENTATION_LABELS,
   PROPERTY_TYPE_LABELS,
+  AVAILABILITY_LABELS,
   SITE,
   SITE_URL,
   whatsappLink,
@@ -71,7 +72,7 @@ export default async function PropertyDetailPage({ params }: { params: Params })
   const summary = [
     PROPERTY_TYPE_LABELS[property.property_type],
     property.m2_total ? `${property.m2_total} m²` : null,
-    property.bedrooms ? `${property.bedrooms} ambiente${property.bedrooms > 1 ? "s" : ""}` : null,
+    property.bedrooms ? `${property.bedrooms} dormitorio${property.bedrooms > 1 ? "s" : ""}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -79,7 +80,7 @@ export default async function PropertyDetailPage({ params }: { params: Params })
   const specs = [
     property.m2_total ? { icon: IconArea, value: `${property.m2_total} m²`, label: "tot." } : null,
     property.m2_covered ? { icon: IconArea, value: `${property.m2_covered} m²`, label: "cub." } : null,
-    property.bedrooms ? { icon: IconBed, value: `${property.bedrooms}`, label: "amb." } : null,
+    property.bedrooms ? { icon: IconBed, value: `${property.bedrooms}`, label: "dorm." } : null,
     property.bathrooms
       ? { icon: IconBath, value: `${property.bathrooms}`, label: property.bathrooms > 1 ? "baños" : "baño" }
       : null,
@@ -160,9 +161,20 @@ export default async function PropertyDetailPage({ params }: { params: Params })
         <div>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-utility text-[11px] uppercase tracking-[0.14em] text-grafito/50">{summary}</p>
-            <span className="rounded-md bg-piedra/50 px-2.5 py-1 font-utility text-[10px] font-medium uppercase tracking-[0.08em] text-grafito/70">
-              {OPERATION_LABELS[property.operation]}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {property.availability !== "disponible" ? (
+                <span
+                  className={`rounded-md px-3 py-1.5 font-utility text-[11px] font-semibold uppercase tracking-[0.1em] text-blanco-roto shadow-sm ${
+                    property.availability === "reservada" ? "bg-bronce" : "bg-petroleo"
+                  }`}
+                >
+                  {AVAILABILITY_LABELS[property.availability] ?? property.availability}
+                </span>
+              ) : null}
+              <span className="rounded-md bg-piedra/50 px-2.5 py-1 font-utility text-[10px] font-medium uppercase tracking-[0.08em] text-grafito/70">
+                {OPERATION_LABELS[property.operation]}
+              </span>
+            </div>
           </div>
           <p className="mt-2 font-display text-3xl tabular-nums text-grafito sm:text-4xl">
             {formatPrice(property.price, property.currency as "USD" | "ARS")}
@@ -188,7 +200,7 @@ export default async function PropertyDetailPage({ params }: { params: Params })
           <div className="mt-10">
             <h1 className="font-display text-2xl text-grafito">{property.title}</h1>
             <p className="mt-1.5 font-body text-sm text-grafito/50">{property.neighborhood}</p>
-            <p className="mt-6 max-w-2xl font-body text-[15px] leading-relaxed text-grafito/75">
+            <p className="mt-6 max-w-2xl whitespace-pre-line font-body text-[16.5px] leading-[1.8] text-grafito/80">
               {property.description}
             </p>
           </div>

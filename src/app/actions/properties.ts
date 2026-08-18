@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/admin/activity";
 import { AVAILABILITY_LABELS } from "@/lib/admin/constants";
-import { deleteStorageImagesByPropertyId, deleteStorageImagesByUrls } from "@/lib/admin/property-images";
+import { requireAdmin, requireStaff } from "@/lib/supabase/guards";
 
 const propertySchema = z.object({
   title: z.string().trim().min(3),
@@ -46,6 +46,11 @@ export type PropertyFormState = {
   error?: string;
   propertyId?: string;
   slug?: string;
+  /** Only set when this submission created a new property. The row is
+   * always inserted as `draft` regardless of what the admin picked (see
+   * `savePropertyBase`) — this carries the admin's actual intent so the
+   * client can promote it to `published` only after photos finish syncing. */
+  intendedStatus?: "published" | "draft";
   /** zod field key -> first error message, for highlighting the exact
    * invalid input client-side (e.g. `{ slug: "Usá minúsculas, números y guiones." }`). */
   fieldMessages?: Record<string, string>;
@@ -141,6 +146,12 @@ async function savePropertyBase(
   _prevState: PropertyFormState,
   formData: FormData,
 ): Promise<PropertyFormState> {
+  try {
+    await requireStaff();
+  } catch {
+    return { error: "No tenés permiso para guardar propiedades." };
+  }
+
   let parsed;
   try {
     parsed = parseForm(formData);
@@ -186,7 +197,16 @@ async function savePropertyBase(
   };
 
   if (!id) {
-    const { data: property, error } = await supabase.from("properties").insert(fields).select("id").single();
+    // Always create as draft, whatever the admin picked: photos are synced
+    // in a second client-driven step (see PropertyForm), and a property
+    // must never go live with zero/partial photos because that step hasn't
+    // run yet. `intendedStatus` carries the real choice back to the client,
+    // which promotes to `published` only once photos finish syncing.
+    const { data: property, error } = await supabase
+      .from("properties")
+      .insert({ ...fields, status: "draft" })
+      .select("id")
+      .single();
 
     if (error || !property) {
       return {
@@ -209,7 +229,7 @@ async function savePropertyBase(
     revalidatePath("/admin/propiedades");
     revalidatePath("/propiedades");
     revalidatePath("/");
-    return { propertyId: property.id, slug: parsed.slug };
+    return { propertyId: property.id, slug: parsed.slug, intendedStatus: parsed.status };
   }
 
   const { data: before } = await supabase
@@ -299,40 +319,42 @@ export async function updatePropertyAction(
 /**
  * Writes the final `property_images` rows for a property from a list of
  * already-uploaded URLs (the browser uploads bytes straight to Storage
- * before calling this — see `PropertyImagesManager.commit`). Replaces the
- * full set for the property, same as before, and cleans up Storage objects
- * for any URL that was removed. Called after `savePropertyBase` succeeds,
- * for both create and edit.
+ * before calling this — see `PropertyImagesManager.commit`). `property_images`
+ * is the source of truth for what's "live"; this never touches Storage.
+ *
+ * Deliberately not "atomic across DB + Storage": Postgres and Supabase
+ * Storage are two different systems, so no snapshot-then-recheck dance
+ * around a `Storage.remove()` here can fully close the gap between two
+ * concurrent saves — it can only narrow it while still risking a valid,
+ * freshly-re-added image getting deleted by a slower concurrent request.
+ * Removing an object a moment too early is unrecoverable; leaving an
+ * unreferenced object in Storage a while longer costs nothing but a few KB.
+ * So this action only ever writes rows (via the row-locked, serialized
+ * `sync_property_images` RPC — migration 0030) and never deletes Storage
+ * objects. A photo the admin removes just stops being referenced/shown
+ * immediately; its file may still exist in Storage until the separate,
+ * manual `cleanupOrphanPropertyImages` maintenance action (see
+ * property-images-cleanup.ts) reclaims it, well past a grace period, after
+ * re-confirming it's still unreferenced at that later point in time.
  */
 export async function syncPropertyImages(
   propertyId: string,
   images: { url: string; alt: string }[],
 ): Promise<{ error?: string }> {
+  try {
+    await requireStaff();
+  } catch {
+    return { error: "No tenés permiso para modificar fotos." };
+  }
+
   const supabase = await createClient();
 
-  const { data: existingImages } = await supabase
-    .from("property_images")
-    .select("url")
-    .eq("property_id", propertyId);
-
-  const { error: deleteError } = await supabase.from("property_images").delete().eq("property_id", propertyId);
-  if (deleteError) {
+  const { error } = await supabase.rpc("sync_property_images", {
+    p_property_id: propertyId,
+    p_images: images,
+  });
+  if (error) {
     return { error: "No se pudieron guardar las fotos." };
-  }
-
-  if (images.length > 0) {
-    const { error: insertError } = await supabase.from("property_images").insert(
-      images.map((img, index) => ({ property_id: propertyId, url: img.url, alt: img.alt, position: index })),
-    );
-    if (insertError) {
-      return { error: "No se pudieron guardar las fotos." };
-    }
-  }
-
-  const keptUrls = new Set(images.map((img) => img.url));
-  const removedUrls = (existingImages ?? []).map((row) => row.url).filter((url) => !keptUrls.has(url));
-  if (removedUrls.length > 0) {
-    await deleteStorageImagesByUrls(supabase, removedUrls);
   }
 
   revalidatePath("/admin/propiedades");
@@ -340,20 +362,64 @@ export async function syncPropertyImages(
   return {};
 }
 
-export async function deleteProperty(id: string) {
+/**
+ * Second half of the safe-publish flow for a brand-new property: called
+ * once photos have finished syncing, promoting the draft row created by
+ * `savePropertyBase` to the admin's originally intended status. A no-op
+ * for `draft` — the row is already there.
+ */
+export async function finalizePropertyPublish(
+  id: string,
+  status: "published" | "draft",
+): Promise<{ error?: string }> {
+  await requireStaff();
+  if (status === "draft") return {};
+
   const supabase = await createClient();
-  // Explicit, not relied on cascade: guarantees property_images rows are
-  // gone even if the FK's delete behavior ever changes, so no orphaned row
-  // can outlive its property and later 404/400 on the public site.
-  await supabase.from("property_images").delete().eq("property_id", id);
-  await supabase.from("properties").delete().eq("id", id);
-  await deleteStorageImagesByPropertyId(supabase, id);
+  const { error } = await supabase.from("properties").update({ status }).eq("id", id);
+  if (error) {
+    return { error: "La propiedad se guardó como borrador, pero no se pudo publicar." };
+  }
+
   revalidatePath("/admin/propiedades");
   revalidatePath("/propiedades");
   revalidatePath("/");
+  return {};
+}
+
+export async function deleteProperty(id: string): Promise<{ error?: string }> {
+  // Checked before any destructive call, not just hidden in the UI: RLS
+  // alone let a non-admin agente's property_images delete succeed and only
+  // reject the properties delete afterwards, leaving the listing half-gone
+  // (photos wiped, property still published) with no error surfaced.
+  await requireAdmin();
+
+  const supabase = await createClient();
+
+  // Delete the parent row first and stop on failure — property_images and
+  // Storage cleanup only run once we know the property itself is gone, so a
+  // blocked/failed delete never leaves the listing in a half-deleted state.
+  const { error: propertyError } = await supabase.from("properties").delete().eq("id", id);
+  if (propertyError) {
+    return { error: "No se pudo eliminar la propiedad." };
+  }
+
+  // Belt-and-suspenders cleanup for anything the FK cascade didn't already
+  // clear. Storage objects under this property's folder are deliberately
+  // NOT touched here — Storage cleanup never runs synchronously as part of
+  // a DB write (see syncPropertyImages above for why). They become
+  // orphans, same as any image removed via the editor, and get reclaimed
+  // later by cleanupOrphanPropertyImages once past its grace period.
+  await supabase.from("property_images").delete().eq("property_id", id);
+
+  revalidatePath("/admin/propiedades");
+  revalidatePath("/propiedades");
+  revalidatePath("/");
+  return {};
 }
 
 export async function toggleFeatured(id: string, featured: boolean) {
+  await requireStaff();
   const supabase = await createClient();
   await supabase.from("properties").update({ featured }).eq("id", id);
   revalidatePath("/admin/propiedades");
@@ -361,6 +427,7 @@ export async function toggleFeatured(id: string, featured: boolean) {
 }
 
 export async function updateAvailability(id: string, availability: string) {
+  await requireStaff();
   const supabase = await createClient();
   const { data: before } = await supabase
     .from("properties")

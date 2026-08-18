@@ -20,6 +20,7 @@ import {
 import { AVAILABILITY_LABELS, AVAILABILITY_TIERS, formatDateTime } from "@/lib/admin/constants";
 import { OPERATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
+import { getCurrentAdminRole } from "@/lib/supabase/guards";
 
 type Params = Promise<{ id: string }>;
 
@@ -29,13 +30,14 @@ export default async function EditPropertyPage({ params }: { params: Params }) {
 
   if (!property) notFound();
 
-  const [internal, documents, listings, activity, contacts, admins] = await Promise.all([
+  const [internal, documents, listings, activity, contacts, admins, role] = await Promise.all([
     getPropertyInternal(id),
     getPropertyDocuments(id),
     getPropertyListings(id),
     getActivityForEntity("property", id),
     getContactsForSelect(),
     getActiveAdminProfiles(),
+    getCurrentAdminRole(),
   ]);
 
   const cover = property.property_images?.[0];
@@ -75,7 +77,9 @@ export default async function EditPropertyPage({ params }: { params: Params }) {
             interna: (
               <PropertyInternalForm propertyId={id} data={internal} contacts={contacts} admins={admins} />
             ),
-            documentacion: <PropertyDocumentsPanel propertyId={id} documents={documents} />,
+            documentacion: (
+              <PropertyDocumentsPanel propertyId={id} documents={documents} canDelete={role === "admin"} />
+            ),
             difusion: (
               <PropertyListingsPanel propertyId={id} listings={listings} isPublished={property.status === "published"} />
             ),

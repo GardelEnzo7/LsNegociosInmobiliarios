@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 type ConfirmOptions = {
   title: string;
@@ -23,6 +24,8 @@ export function useConfirm(): ConfirmFn {
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{ options: ConfirmOptions; resolve: (value: boolean) => void } | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, Boolean(state), { autoFocusFirst: false });
 
   const confirm = useCallback<ConfirmFn>((options) => {
     return new Promise<boolean>((resolve) => setState({ options, resolve }));
@@ -52,6 +55,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-grafito-dark/40 animate-[fade-up_180ms_var(--ease-out)]" onClick={() => close(false)} />
           <div
+            ref={dialogRef}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirm-dialog-title"

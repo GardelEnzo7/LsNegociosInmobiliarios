@@ -6,7 +6,7 @@ export const REASONS = [
   {
     icon: IconCalculator,
     title: "Valuación Profesional",
-    description: "Análisis actualizado del mercado rosarino para fijar el precio justo.",
+    description: "Análisis actualizado del mercado para fijar el precio justo.",
   },
   {
     icon: IconChart,
@@ -15,7 +15,7 @@ export const REASONS = [
   },
   {
     icon: IconUsers,
-    title: "Acompañamiento Total",
+    title: "Acompañamiento Integral",
     description: "Te asesoramos en cada etapa, desde la tasación hasta la firma.",
   },
 ];
@@ -31,10 +31,6 @@ export function CtaBand() {
           <h2 className="mx-auto mt-4 max-w-2xl font-display text-4xl">
             ¿Querés vender o alquilar tu propiedad?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl font-body text-blanco-roto/70">
-            Con más de 5 años en el mercado rosarino, te ayudamos a obtener el mejor
-            resultado en el menor tiempo posible.
-          </p>
         </Reveal>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-3">

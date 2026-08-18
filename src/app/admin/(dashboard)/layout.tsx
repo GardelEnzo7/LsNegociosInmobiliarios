@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/admin/sidebar";
 import { MobileNav } from "@/components/admin/mobile-nav";
 import { ConfirmProvider } from "@/components/admin/ui/confirm-dialog";
@@ -14,6 +15,17 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   const supabase = await createClient();
   await supabase.rpc("claim_admin_profile");
   const { data: role } = await supabase.rpc("current_admin_role");
+
+  // Middleware only checks "is there a session" — it lets any authenticated
+  // Supabase user through to /admin/*, including one with no admin_profile
+  // row at all (e.g. a stray auth account, or one deactivated by an admin).
+  // RLS already blocks that user from reading/writing any admin data, but
+  // without this check they'd still see the full admin shell (sidebar, nav,
+  // page chrome) rendered around empty/failing panels. Reject explicitly
+  // here instead of relying on RLS alone.
+  if (!role) {
+    redirect("/");
+  }
 
   const profile = await getAdminProfileForCurrentUser();
 

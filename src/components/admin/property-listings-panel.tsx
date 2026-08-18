@@ -109,9 +109,10 @@ function ListingRow({
             tier={LISTING_STATUS_TIERS[status]}
             options={LISTING_STATUS_OPTIONS}
             disabled={isPending}
+            ariaLabel={`Estado de la publicación en ${label}`}
             onChange={(value) =>
               startTransition(() =>
-                upsertPropertyListing(propertyId!, channel!, {
+                void upsertPropertyListing(propertyId!, channel!, {
                   status: value,
                   externalUrl: externalUrl ?? undefined,
                   notes: notes ?? undefined,

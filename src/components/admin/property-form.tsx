@@ -6,6 +6,7 @@ import {
   createPropertyAction,
   updatePropertyAction,
   syncPropertyImages,
+  finalizePropertyPublish,
   type PropertyFormState,
 } from "@/app/actions/properties";
 import { ORIENTATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
@@ -56,6 +57,20 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
           setFinalizeError(result.error);
           setFinalizing(false);
           return;
+        }
+
+        // New property, created as draft (see savePropertyBase): now that
+        // photos are safely synced, promote it to what the admin actually
+        // asked for. If that fails, land on the edit page instead of the
+        // list — the draft and its photos are intact, ready to retry.
+        if (!property && state.intendedStatus === "published") {
+          const publishResult = await finalizePropertyPublish(state.propertyId!, "published");
+          if (cancelled) return;
+          if (publishResult.error) {
+            router.push(`/admin/propiedades/${state.propertyId}`);
+            router.refresh();
+            return;
+          }
         }
 
         router.push("/admin/propiedades");

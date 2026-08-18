@@ -26,7 +26,6 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
         <span className="font-utility text-[10px] font-medium uppercase tracking-[0.14em] text-grafito/45">
           {PROPERTY_TYPE_LABELS[property.property_type]}
         </span>
-        {isClosed ? <StatusPill availability={property.availability} className="ml-auto" /> : null}
       </div>
 
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-piedra">
@@ -42,6 +41,7 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
             )}
           />
         ) : null}
+        {isClosed ? <StatusPill availability={property.availability} className="absolute right-2.5 top-2.5" /> : null}
       </div>
 
       <div className="flex flex-1 flex-col px-2 pb-2 pt-4">
@@ -75,14 +75,17 @@ export function PropertyCard({ property }: { property: PropertyWithImages }) {
   );
 }
 
+/** Corner status ribbon over the cover photo — solid brand colors (not a
+ * translucent overlay) so legibility never depends on how light or dark the
+ * underlying photo is. */
 function StatusPill({ availability, className }: { availability: string; className?: string }) {
   const label = AVAILABILITY_LABELS[availability] ?? availability;
   const isDone = availability === "vendida" || availability === "alquilada";
   return (
     <span
       className={cn(
-        "rounded-full px-2.5 py-1 font-utility text-[10px] font-medium uppercase tracking-[0.1em]",
-        isDone ? "bg-petroleo text-blanco-roto" : "text-grafito/60 ring-1 ring-inset ring-grafito/20",
+        "rounded-full px-2.5 py-1 font-utility text-[10px] font-semibold uppercase tracking-[0.1em] shadow-[0_2px_8px_rgba(28,33,41,0.25)]",
+        isDone ? "bg-petroleo text-blanco-roto" : "bg-bronce text-blanco-roto",
         className,
       )}
     >
@@ -107,12 +110,12 @@ export function PropertyCardCompact({ property }: { property: PropertyWithImages
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
       ) : null}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-grafito-dark/85 via-grafito-dark/25 to-transparent p-4 pt-10">
-        <p className="font-utility text-[10px] font-medium uppercase tracking-[0.12em] text-petroleo-claro">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-grafito-dark/95 via-grafito-dark/60 via-45% to-transparent p-4 pt-14">
+        <p className="font-utility text-[10px] font-medium uppercase tracking-[0.12em] text-petroleo-claro drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           {(AVAILABILITY_LABELS[property.availability] ?? property.availability)} ·{" "}
           {PROPERTY_TYPE_LABELS[property.property_type]}
         </p>
-        <p className="mt-1 flex items-center gap-1.5 font-display text-[15px] text-blanco-roto">
+        <p className="mt-1 flex items-center gap-1.5 font-display text-[15px] text-blanco-roto drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           <IconPin className="h-3.5 w-3.5 shrink-0 text-blanco-roto/60" />
           {property.neighborhood}
         </p>

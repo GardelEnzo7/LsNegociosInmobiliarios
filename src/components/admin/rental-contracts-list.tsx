@@ -19,12 +19,13 @@ type Contract = {
   rent_currency: string;
   expensas_amount: number | null;
   status: string;
+  adjustment_next_date: string | null;
   properties: { id: string; title: string; slug: string } | null;
   owner: { id: string; full_name: string } | null;
   tenant: { id: string; full_name: string } | null;
 };
 
-export function RentalContractsList({ contracts }: { contracts: Contract[] }) {
+export function RentalContractsList({ contracts, canDelete = true }: { contracts: Contract[]; canDelete?: boolean }) {
   if (contracts.length === 0) {
     return <EmptyState text="Todavía no hay administraciones cargadas." bordered />;
   }
@@ -32,13 +33,13 @@ export function RentalContractsList({ contracts }: { contracts: Contract[] }) {
   return (
     <div className="space-y-3">
       {contracts.map((contract) => (
-        <ContractCard key={contract.id} contract={contract} />
+        <ContractCard key={contract.id} contract={contract} canDelete={canDelete} />
       ))}
     </div>
   );
 }
 
-function ContractCard({ contract }: { contract: Contract }) {
+function ContractCard({ contract, canDelete }: { contract: Contract; canDelete: boolean }) {
   const [isPending, startTransition] = useTransition();
   const confirm = useConfirm();
 
@@ -69,6 +70,7 @@ function ContractCard({ contract }: { contract: Contract }) {
           tier={RENTAL_STATUS_TIERS[contract.status]}
           options={RENTAL_STATUS_OPTIONS}
           disabled={isPending}
+          ariaLabel={`Estado del contrato de ${contract.properties?.title ?? "propiedad eliminada"}`}
           onChange={(value) => startTransition(() => updateContractStatus(contract.id, value))}
         />
       </div>
@@ -82,6 +84,11 @@ function ContractCard({ contract }: { contract: Contract }) {
             Expensas: {formatPrice(contract.expensas_amount, "ARS")}
           </span>
         ) : null}
+        {contract.adjustment_next_date ? (
+          <span className="rounded-full bg-bronce/[0.14] px-2.5 py-1 text-bronce">
+            Próximo ajuste: {contract.adjustment_next_date}
+          </span>
+        ) : null}
       </div>
 
       <div className="mt-4 flex items-center gap-4">
@@ -91,16 +98,18 @@ function ContractCard({ contract }: { contract: Contract }) {
         >
           Ver detalle y pagos
         </Link>
-        <button
-          type="button"
-          onClick={async () => {
-            const ok = await confirm({ title: "¿Eliminar esta administración?", confirmLabel: "Eliminar", destructive: true });
-            if (ok) startTransition(() => deleteContract(contract.id));
-          }}
-          className="text-xs font-medium text-terracota hover:underline"
-        >
-          Eliminar
-        </button>
+        {canDelete ? (
+          <button
+            type="button"
+            onClick={async () => {
+              const ok = await confirm({ title: "¿Eliminar esta administración?", confirmLabel: "Eliminar", destructive: true });
+              if (ok) startTransition(() => deleteContract(contract.id));
+            }}
+            className="text-xs font-medium text-terracota hover:underline"
+          >
+            Eliminar
+          </button>
+        ) : null}
       </div>
     </div>
   );

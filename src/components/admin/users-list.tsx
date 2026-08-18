@@ -58,7 +58,7 @@ export function UsersList({ profiles }: { profiles: Profile[] }) {
           <span className="font-medium">Dashboard de Supabase → Authentication → Users → Add user</span>{" "}
           con este mismo email, y 2) la primera vez que inicie sesión, su cuenta se vincula sola a este
           perfil. Un Administrador tiene acceso a todo; un Agente no puede gestionar otros usuarios ni
-          eliminar propiedades o clientes.
+          eliminar propiedades o administraciones.
         </div>
       </Panel>
 
@@ -116,6 +116,7 @@ function ProfileRow({ profile }: { profile: Profile }) {
           onClick={() => startTransition(() => toggleProfileActive(profile.id, !profile.active))}
           role="switch"
           aria-checked={profile.active}
+          aria-label={`${profile.active ? "Desactivar" : "Activar"} a ${profile.full_name}`}
           className={cn(
             "relative h-6 w-11 rounded-full transition-colors duration-200 ease-out",
             profile.active ? "bg-petroleo" : "bg-piedra/60",

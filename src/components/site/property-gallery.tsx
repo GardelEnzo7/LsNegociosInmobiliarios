@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PropertyImage } from "@/components/site/property-image";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 type GalleryImage = { id: string; url: string; alt: string | null };
 
@@ -197,6 +198,8 @@ function Lightbox({
   const image = images[index];
   const swipe = useSwipe(onNext, onPrev);
   const activeThumbRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true);
 
   useEffect(() => {
     activeThumbRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
@@ -204,6 +207,7 @@ function Lightbox({
 
   return (
     <div
+      ref={dialogRef}
       className="animate-fade-up fixed inset-0 z-50 flex flex-col bg-grafito-dark/95 backdrop-blur-sm"
       style={{ animationDuration: "200ms" }}
       role="dialog"

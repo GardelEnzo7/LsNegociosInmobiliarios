@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { requireStaff } from "@/lib/supabase/guards";
 
 const internalSchema = z.object({
   ownerContactId: z.string().uuid().optional().or(z.literal("")),
@@ -33,6 +34,12 @@ export async function upsertPropertyInternal(
 
   if (!parsed.success) {
     return { error: "Revisá los campos." };
+  }
+
+  try {
+    await requireStaff();
+  } catch {
+    return { error: "No tenés permiso para editar esta información." };
   }
 
   const supabase = await createClient();

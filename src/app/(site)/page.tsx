@@ -6,6 +6,10 @@ import { CtaBand } from "@/components/site/cta-band";
 import { ContactSection } from "@/components/site/contact-section";
 import { getFeaturedProperties, getNeighborhoods, getPriceRangesByCurrency } from "@/lib/data/properties";
 
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
 export default async function HomePage() {
   const [neighborhoods, featured, priceRanges] = await Promise.all([
     getNeighborhoods(),
@@ -24,3 +28,4 @@ export default async function HomePage() {
     </>
   );
 }
+import type { Metadata } from "next";

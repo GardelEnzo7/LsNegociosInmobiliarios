@@ -1,19 +1,50 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
+import { useEffect } from "react";
+import { LatLngBounds } from "leaflet";
 import Image from "next/image";
 import Link from "next/link";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import type { PropertyWithImages } from "@/lib/data/properties";
 import { OPERATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { markerIcon } from "@/components/site/leaflet-marker-icon";
 import { formatPrice } from "@/lib/utils";
 import { IconArea, IconBed, IconPin } from "@/components/site/icons";
 
+const FALLBACK_CENTER: [number, number] = [-32.9468, -60.6393];
+
 /** typeof check (not truthy) so a legitimate 0 lat/lng never gets treated
  * as "missing" — irrelevant in Rosario in practice, but cheap to get right. */
 function hasCoordinates(p: PropertyWithImages): p is PropertyWithImages & { lat: number; lng: number } {
   return typeof p.lat === "number" && typeof p.lng === "number";
+}
+
+type Point = PropertyWithImages & { lat: number; lng: number };
+
+/** Keeps the already-mounted map's center/bounds in sync with the actual
+ * marker set (not just its count) without recreating the MapContainer —
+ * remounting via a `key` would drop zoom/pan state and re-fetch tiles on
+ * every filter change, which is wasteful and jarring. */
+function MapBoundsSync({ points }: { points: Point[] }) {
+  const map = useMap();
+  // Signature captures identity AND position of every marker, so filtering
+  // to a different-but-same-size set of properties still triggers a sync.
+  const signature = points.map((p) => `${p.id}:${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join("|");
+
+  useEffect(() => {
+    if (points.length === 0) {
+      map.setView(FALLBACK_CENTER, 12);
+    } else if (points.length === 1) {
+      map.setView([points[0].lat, points[0].lng], 14);
+    } else {
+      const bounds = new LatLngBounds(points.map((p): [number, number] => [p.lat, p.lng]));
+      map.fitBounds(bounds, { padding: [32, 32] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+
+  return null;
 }
 
 export function PropertiesMap({ properties }: { properties: PropertyWithImages[] }) {
@@ -24,16 +55,11 @@ export function PropertiesMap({ properties }: { properties: PropertyWithImages[]
           points.reduce((sum, p) => sum + p.lat, 0) / points.length,
           points.reduce((sum, p) => sum + p.lng, 0) / points.length,
         ]
-      : [-32.9468, -60.6393];
+      : FALLBACK_CENTER;
 
   return (
-    <MapContainer
-      center={center}
-      zoom={12}
-      scrollWheelZoom={false}
-      className="h-full w-full"
-      key={points.length}
-    >
+    <MapContainer center={center} zoom={12} scrollWheelZoom={false} className="h-full w-full">
+      <MapBoundsSync points={points} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"

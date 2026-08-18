@@ -3,21 +3,33 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 import { OPERATIVE_LINKS, MANAGEMENT_LINKS } from "@/components/admin/sidebar";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 export function MobileNav({ role }: { role?: string | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const managementLinks = MANAGEMENT_LINKS.filter((link) => !link.adminOnly || role === "admin");
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(drawerRef, open);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   const isActive = (href: string, exact?: boolean) =>
@@ -48,7 +60,13 @@ export function MobileNav({ role }: { role?: string | null }) {
       {open ? (
         <div className="fixed inset-0 z-40">
           <div className="absolute inset-0 bg-grafito-dark/60" onClick={() => setOpen(false)} />
-          <div className="absolute inset-y-0 left-0 flex w-[82vw] max-w-xs flex-col bg-grafito-dark">
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
+            className="absolute inset-y-0 left-0 flex w-[82vw] max-w-xs flex-col bg-grafito-dark"
+          >
             <div className="flex items-center justify-between border-b border-blanco-roto/10 px-5 py-4">
               <p className="font-display text-[15px] text-blanco-roto" style={{ fontWeight: 480 }}>
                 LS Gestión

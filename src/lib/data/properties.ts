@@ -18,15 +18,21 @@ export type PropertyFilters = {
 export type PriceRange = { min: number; max: number };
 export type PriceRangesByCurrency = { USD: PriceRange | null; ARS: PriceRange | null };
 
+/** Thrown only for genuine Supabase/infra failures (never for "0 rows") so
+ * the nearest `error.tsx` can show a real error state instead of the page
+ * silently rendering an empty/"not found" result as if that were the truth. */
+export class PropertyFetchError extends Error {}
+
 export async function getFeaturedProperties(): Promise<PropertyWithImages[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("properties")
     .select("*, property_images(*)")
     .eq("status", "published")
     .eq("featured", true)
     .order("created_at", { ascending: false });
 
+  if (error) throw new PropertyFetchError("No se pudieron cargar las propiedades destacadas.");
   return (data ?? []).map(sortImages);
 }
 
@@ -53,19 +59,23 @@ export async function getProperties(filters: PropertyFilters = {}): Promise<Prop
     }
   }
 
-  const { data } = await query.order("created_at", { ascending: false });
+  const { data, error } = await query.order("created_at", { ascending: false });
+  if (error) throw new PropertyFetchError("No se pudieron cargar las propiedades.");
   return (data ?? []).map(sortImages);
 }
 
 export async function getPropertyBySlug(slug: string): Promise<PropertyWithImages | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("properties")
     .select("*, property_images(*)")
     .eq("status", "published")
     .eq("slug", slug)
     .maybeSingle();
 
+  // Only a real (no-error) empty result means "not found" — an infra/query
+  // error must never be treated the same as a missing property (false 404).
+  if (error) throw new PropertyFetchError("No se pudo cargar la propiedad.");
   return data ? sortImages(data) : null;
 }
 

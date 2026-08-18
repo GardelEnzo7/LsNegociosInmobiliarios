@@ -25,6 +25,12 @@ type SearchParams = Promise<{
   q?: string;
 }>;
 
+function parseOptionalPrice(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 export default async function PropertiesPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
 
@@ -39,8 +45,8 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
     neighborhood: params.zona || undefined,
     query: params.q || undefined,
     currency: hasPriceFilter ? params.moneda : undefined,
-    priceMin: hasPriceFilter && params.precioMin ? Number(params.precioMin) : undefined,
-    priceMax: hasPriceFilter && params.precioMax ? Number(params.precioMax) : undefined,
+    priceMin: hasPriceFilter ? parseOptionalPrice(params.precioMin) : undefined,
+    priceMax: hasPriceFilter ? parseOptionalPrice(params.precioMax) : undefined,
   };
 
   const [neighborhoods, properties, priceRanges] = await Promise.all([

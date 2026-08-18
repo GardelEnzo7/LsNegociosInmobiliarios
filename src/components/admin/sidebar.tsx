@@ -7,23 +7,21 @@ import { logout } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
 import {
   IconHome,
-  IconCalendar,
   IconBuilding,
-  IconUsers,
   IconKey,
   IconChart,
   IconPortrait,
+  IconStar,
 } from "@/components/site/icons";
 
 const OPERATIVE_LINKS = [
   { href: "/admin", label: "Resumen", icon: IconHome, exact: true },
-  { href: "/admin/visitas", label: "Visitas", icon: IconCalendar },
   { href: "/admin/propiedades", label: "Propiedades", icon: IconBuilding },
-  { href: "/admin/clientes", label: "Clientes", icon: IconUsers },
 ];
 
 const MANAGEMENT_LINKS = [
   { href: "/admin/administraciones", label: "Administraciones", icon: IconKey },
+  { href: "/admin/quien-te-acompana", label: "Quién te acompaña", icon: IconStar },
   { href: "/admin/estadisticas", label: "Estadísticas", icon: IconChart },
   { href: "/admin/usuarios", label: "Usuarios", icon: IconPortrait, adminOnly: true },
 ];

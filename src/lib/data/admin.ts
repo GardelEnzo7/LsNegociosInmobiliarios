@@ -42,55 +42,7 @@ export async function getActiveAdminProfiles() {
   return data ?? [];
 }
 
-export async function getAllLeads() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("leads")
-    .select("*, lead_properties(properties(id, title, slug))")
-    .order("created_at", { ascending: false });
-
-  return data ?? [];
-}
-
-export async function getAllContacts() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("contacts")
-    .select(
-      "*, contact_roles(role), contact_properties(properties(id, title, slug))",
-    )
-    .order("created_at", { ascending: false });
-
-  return data ?? [];
-}
-
-export async function getContactById(id: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("contacts")
-    .select(
-      "*, contact_roles(role), contact_properties(properties(id, title, slug))",
-    )
-    .eq("id", id)
-    .maybeSingle();
-
-  return data;
-}
-
-export async function getVisitsForContact(contactId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("visits")
-    .select(
-      "id, scheduled_at, status, notes, property:properties(id, title, slug), assigned:admin_profiles(id, full_name)",
-    )
-    .eq("contact_id", contactId)
-    .order("scheduled_at", { ascending: false });
-
-  return data ?? [];
-}
-
-export async function getActivityForEntity(entityType: "property" | "contact" | "visit", entityId: string) {
+export async function getActivityForEntity(entityType: "property", entityId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("activity_log")
@@ -203,56 +155,9 @@ export async function getPropertyStatusCounts() {
   };
 }
 
-export async function getAllVisits() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("visits")
-    .select(
-      "id, scheduled_at, status, notes, property:properties(id, title, slug), contact:contacts(id, full_name), assigned:admin_profiles(id, full_name)",
-    )
-    .order("scheduled_at", { ascending: true });
-
-  return data ?? [];
-}
-
 export async function getContactsForSelect() {
   const supabase = await createClient();
   const { data } = await supabase.from("contacts").select("id, full_name").order("full_name");
-  return data ?? [];
-}
-
-export async function getTodayVisits() {
-  const supabase = await createClient();
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  const { data } = await supabase
-    .from("visits")
-    .select(
-      "id, scheduled_at, status, property:properties(id, title, slug), contact:contacts(id, full_name), assigned:admin_profiles(id, full_name)",
-    )
-    .in("status", ["programada", "reprogramada"])
-    .gte("scheduled_at", start.toISOString())
-    .lte("scheduled_at", end.toISOString())
-    .order("scheduled_at", { ascending: true });
-
-  return data ?? [];
-}
-
-export async function getUpcomingVisits(limit = 5) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("visits")
-    .select(
-      "id, scheduled_at, status, property:properties(id, title, slug), contact:contacts(id, full_name), assigned:admin_profiles(id, full_name)",
-    )
-    .eq("status", "programada")
-    .gte("scheduled_at", new Date().toISOString())
-    .order("scheduled_at", { ascending: true })
-    .limit(limit);
-
   return data ?? [];
 }
 
@@ -333,6 +238,23 @@ export async function getPropertiesNeedingAttention(limit = 6) {
     })
     .filter((property) => property.reasons.length > 0)
     .slice(0, limit);
+}
+
+export async function getAdjustmentsForContract(contractId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("rental_adjustments")
+    .select("*")
+    .eq("contract_id", contractId)
+    .order("effective_date", { ascending: false });
+
+  return data ?? [];
+}
+
+export async function getAgencyProfileAdmin() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("agency_profile").select("*").eq("id", 1).maybeSingle();
+  return data;
 }
 
 export async function getPaymentsForContract(contractId: string) {

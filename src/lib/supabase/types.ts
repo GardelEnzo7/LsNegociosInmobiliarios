@@ -144,97 +144,6 @@ export type Database = {
           },
         ]
       }
-      contact_properties: {
-        Row: {
-          contact_id: string
-          created_at: string
-          property_id: string
-        }
-        Insert: {
-          contact_id: string
-          created_at?: string
-          property_id: string
-        }
-        Update: {
-          contact_id?: string
-          created_at?: string
-          property_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_properties_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_properties_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      visits: {
-        Row: {
-          assigned_to: string | null
-          contact_id: string | null
-          created_at: string
-          id: string
-          notes: string | null
-          property_id: string | null
-          scheduled_at: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          assigned_to?: string | null
-          contact_id?: string | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          property_id?: string | null
-          scheduled_at: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          assigned_to?: string | null
-          contact_id?: string | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          property_id?: string | null
-          scheduled_at?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "visits_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "admin_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "visits_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "visits_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       property_internal: {
         Row: {
           assigned_to: string | null
@@ -608,6 +517,9 @@ export type Database = {
       }
       rental_contracts: {
         Row: {
+          adjustment_frequency_months: number | null
+          adjustment_next_date: string | null
+          adjustment_type: string | null
           created_at: string
           end_date: string | null
           expensas_amount: number | null
@@ -622,6 +534,9 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          adjustment_frequency_months?: number | null
+          adjustment_next_date?: string | null
+          adjustment_type?: string | null
           created_at?: string
           end_date?: string | null
           expensas_amount?: number | null
@@ -636,6 +551,9 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          adjustment_frequency_months?: number | null
+          adjustment_next_date?: string | null
+          adjustment_type?: string | null
           created_at?: string
           end_date?: string | null
           expensas_amount?: number | null
@@ -717,6 +635,83 @@ export type Database = {
           },
         ]
       }
+      rental_adjustments: {
+        Row: {
+          adjustment_type: string | null
+          contract_id: string
+          created_at: string
+          effective_date: string
+          id: string
+          new_amount: number
+          notes: string | null
+          percentage: number | null
+          previous_amount: number
+        }
+        Insert: {
+          adjustment_type?: string | null
+          contract_id: string
+          created_at?: string
+          effective_date: string
+          id?: string
+          new_amount: number
+          notes?: string | null
+          percentage?: number | null
+          previous_amount: number
+        }
+        Update: {
+          adjustment_type?: string | null
+          contract_id?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          new_amount?: number
+          notes?: string | null
+          percentage?: number | null
+          previous_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_adjustments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "rental_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_profile: {
+        Row: {
+          id: number
+          owner_bio: string | null
+          owner_license: string | null
+          owner_name: string | null
+          owner_photo_alt: string | null
+          owner_photo_url: string | null
+          owner_quote: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          owner_bio?: string | null
+          owner_license?: string | null
+          owner_name?: string | null
+          owner_photo_alt?: string | null
+          owner_photo_url?: string | null
+          owner_quote?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          owner_bio?: string | null
+          owner_license?: string | null
+          owner_name?: string | null
+          owner_photo_alt?: string | null
+          owner_photo_url?: string | null
+          owner_quote?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           contact_email: string | null
@@ -763,6 +758,48 @@ export type Database = {
       }
       claim_admin_profile: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      sync_property_images: {
+        Args: { p_property_id: string; p_images: Json }
+        Returns: undefined
+      }
+      create_rental_administration: {
+        Args: {
+          p_property_id: string
+          p_owner_name: string
+          p_owner_phone: string | null
+          p_owner_email: string | null
+          p_tenant_name: string
+          p_tenant_phone: string | null
+          p_tenant_email: string | null
+          p_start_date: string
+          p_end_date: string | null
+          p_rent_amount: number
+          p_rent_currency: string
+          p_expensas_amount: number | null
+          p_notes: string | null
+          p_adjustment_type: string | null
+          p_adjustment_frequency_months: number | null
+        }
+        Returns: string
+      }
+      apply_rental_adjustment: {
+        Args: {
+          p_contract_id: string
+          p_effective_date: string
+          p_percentage: number | null
+          p_new_amount: number
+          p_notes: string | null
+        }
+        Returns: string
+      }
+      update_rental_adjustment_settings: {
+        Args: {
+          p_contract_id: string
+          p_adjustment_type: string | null
+          p_adjustment_frequency_months: number | null
+        }
         Returns: undefined
       }
     }

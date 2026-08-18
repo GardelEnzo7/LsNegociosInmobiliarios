@@ -1,21 +1,17 @@
 import Link from "next/link";
 import {
   getPropertyStatusCounts,
-  getTodayVisits,
   getRecentActivity,
   getPropertiesNeedingAttention,
 } from "@/lib/data/admin";
-import { formatDateTime } from "@/lib/admin/constants";
 import { ActivityTimeline } from "@/components/admin/activity-timeline";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { Panel } from "@/components/admin/ui/panel";
 import { EmptyState } from "@/components/admin/ui/empty-state";
-import { IconCalendar } from "@/components/site/icons";
 
 export default async function AdminDashboardPage() {
-  const [properties, todayVisits, recentActivity, needsAttention] = await Promise.all([
+  const [properties, recentActivity, needsAttention] = await Promise.all([
     getPropertyStatusCounts(),
-    getTodayVisits(),
     getRecentActivity(6),
     getPropertiesNeedingAttention(5),
   ]);
@@ -33,45 +29,7 @@ export default async function AdminDashboardPage() {
     <div>
       <PageHeader title="Resumen" subtitle="Lo que necesita tu atención hoy." />
 
-      <div className="mt-6">
-        <Panel
-          title={
-            <span className="flex items-center gap-2">
-              <IconCalendar className="h-4 w-4 text-petroleo" />
-              Visitas de hoy
-            </span>
-          }
-          action={
-            <Link href="/admin/visitas" className="text-xs font-medium text-petroleo hover:underline">
-              Ver agenda
-            </Link>
-          }
-        >
-          {todayVisits.length === 0 ? (
-            <EmptyState text="No hay visitas programadas para hoy." />
-          ) : (
-            <ul className="space-y-1">
-              {todayVisits.map((visit) => (
-                <li key={visit.id}>
-                  <Link
-                    href="/admin/visitas"
-                    className="block rounded-lg py-2.5 transition-colors duration-150 ease-out hover:bg-piedra/25 -mx-2 px-2"
-                  >
-                    <p className="font-display text-[15px] text-grafito" style={{ fontWeight: 480 }}>
-                      {formatDateTime(visit.scheduled_at).split(",")[1]?.trim() ?? formatDateTime(visit.scheduled_at)}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-grafito/50">
-                      {visit.property?.title ?? "Propiedad"} · {visit.contact?.full_name ?? "—"}
-                    </p>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-      </div>
-
-      <Panel className="mt-4" padded={false}>
+      <Panel className="mt-6" padded={false}>
         <div className="grid grid-cols-3 divide-x divide-grafito/[0.06] sm:grid-cols-6">
           {inventory.map((item) => (
             <Link

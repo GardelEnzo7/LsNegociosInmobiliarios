@@ -32,7 +32,15 @@ type Document = {
 
 const initialState: DocumentFormState = {};
 
-export function PropertyDocumentsPanel({ propertyId, documents }: { propertyId: string; documents: Document[] }) {
+export function PropertyDocumentsPanel({
+  propertyId,
+  documents,
+  canDelete,
+}: {
+  propertyId: string;
+  documents: Document[];
+  canDelete: boolean;
+}) {
   const action = uploadPropertyDocument.bind(null, propertyId);
   const [state, formAction, pending] = useActionState(action, initialState);
   const [isPending, startTransition] = useTransition();
@@ -58,7 +66,14 @@ export function PropertyDocumentsPanel({ propertyId, documents }: { propertyId: 
           </SelectShell>
         </FormField>
         <FormField label="Archivo" htmlFor="file">
-          <input id="file" type="file" name="file" required className="block text-sm" />
+          <input
+            id="file"
+            type="file"
+            name="file"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
+            required
+            className="block text-sm"
+          />
         </FormField>
         <div className="min-w-[160px] flex-1">
           <FormField label="Notas" htmlFor="notes">
@@ -104,17 +119,19 @@ export function PropertyDocumentsPanel({ propertyId, documents }: { propertyId: 
                 >
                   Ver
                 </button>
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={async () => {
-                    const ok = await confirm({ title: "¿Eliminar este documento?", confirmLabel: "Eliminar", destructive: true });
-                    if (ok) startTransition(() => deletePropertyDocument(doc.id, propertyId, doc.file_path));
-                  }}
-                  className="text-xs font-medium text-terracota hover:underline"
-                >
-                  Eliminar
-                </button>
+                {canDelete ? (
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={async () => {
+                      const ok = await confirm({ title: "¿Eliminar este documento?", confirmLabel: "Eliminar", destructive: true });
+                      if (ok) startTransition(() => void deletePropertyDocument(doc.id, propertyId, doc.file_path));
+                    }}
+                    className="text-xs font-medium text-terracota hover:underline"
+                  >
+                    Eliminar
+                  </button>
+                ) : null}
               </div>
             </li>
           ))}

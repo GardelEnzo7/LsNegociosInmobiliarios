@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { createContract, type ContractFormState } from "@/app/actions/rentals";
 import { Panel } from "@/components/admin/ui/panel";
 import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { ADJUSTMENT_FREQUENCY_OPTIONS, ADJUSTMENT_TYPE_LABELS } from "@/lib/admin/constants";
 
 type PropertyOption = { id: string; title: string; neighborhood: string };
 
@@ -103,6 +104,36 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
           </FormField>
           <FormField label="Expensas (opcional)" htmlFor="expensasAmount">
             <input id="expensasAmount" name="expensasAmount" type="number" min={0} className={inputClass} />
+          </FormField>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <p className="col-span-full font-utility text-[10px] font-medium uppercase tracking-[0.08em] text-grafito/45">
+            Ajuste de alquiler (opcional)
+          </p>
+          <FormField label="Tipo de ajuste" htmlFor="adjustmentType">
+            <SelectShell>
+              <select id="adjustmentType" name="adjustmentType" defaultValue="" className={selectClass}>
+                <option value="">Sin definir</option>
+                {Object.entries(ADJUSTMENT_TYPE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </SelectShell>
+          </FormField>
+          <FormField label="Periodicidad" htmlFor="adjustmentFrequencyMonths">
+            <SelectShell>
+              <select id="adjustmentFrequencyMonths" name="adjustmentFrequencyMonths" defaultValue="" className={selectClass}>
+                <option value="">Sin definir</option>
+                {ADJUSTMENT_FREQUENCY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </SelectShell>
           </FormField>
         </div>
 

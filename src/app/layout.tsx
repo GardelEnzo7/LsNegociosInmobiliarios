@@ -36,11 +36,12 @@ export const metadata: Metadata = {
   description: DEFAULT_DESCRIPTION,
   applicationName: SITE.name,
   robots: { index: true, follow: true },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/Logo-3.webp",
-  },
+  // No explicit `icons` entry needed: favicon.ico and apple-icon.png in
+  // src/app/ are picked up automatically by Next's file-convention metadata
+  // (see node_modules/next/dist/docs/.../app-icons.md) — apple-icon.png is
+  // the real 180x180 PNG generated from the LS isotype (Logo-3.webp),
+  // replacing the old direct .webp reference here (Apple's convention wants
+  // a PNG, not webp).
   openGraph: {
     type: "website",
     locale: "es_AR",

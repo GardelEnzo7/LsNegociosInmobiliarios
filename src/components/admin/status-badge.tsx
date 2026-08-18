@@ -20,8 +20,8 @@ export function StatusBadge({
 }
 
 /** Select styled as a status pill — the shared inline-status-change pattern
- * used across propiedades/consultas/visitas/administraciones. Callers own
- * the Server Action + useTransition; this only owns the look. */
+ * used across propiedades/difusión/administraciones. Callers own the
+ * Server Action + useTransition; this only owns the look. */
 export function StatusSelect({
   value,
   tier,
@@ -29,6 +29,7 @@ export function StatusSelect({
   onChange,
   disabled,
   className,
+  ariaLabel,
 }: {
   value: string;
   tier: StatusTier;
@@ -36,6 +37,7 @@ export function StatusSelect({
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  ariaLabel: string;
 }) {
   return (
     <div className="relative inline-flex">
@@ -43,6 +45,7 @@ export function StatusSelect({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
+        aria-label={ariaLabel}
         className={cn(base, "cursor-pointer appearance-none border-0 pr-6", TIER_STYLES[tier], className)}
       >
         {options.map((opt) => (

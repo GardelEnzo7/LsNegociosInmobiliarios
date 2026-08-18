@@ -147,13 +147,15 @@ export function PriceRangeFilter({
           <button
             type="button"
             onClick={() => handleCurrencyPick(displayCurrency)}
+            aria-pressed={Boolean(currency)}
             className={cn(
-              "text-left font-body text-sm transition-colors duration-150 ease-out",
-              currency ? "text-grafito" : "text-grafito/45 hover:text-grafito/70",
+              "inline-flex w-fit items-center rounded-full px-3 py-1.5 font-body text-sm tabular-nums transition-colors duration-150 ease-out",
+              currency
+                ? "bg-petroleo/[0.12] text-petroleo"
+                : "bg-piedra/50 text-grafito/60 hover:bg-piedra/70",
             )}
           >
             {formatPrice(bounds.min, displayCurrency)}
-            {!currency ? " (tocá para filtrar)" : ""}
           </button>
         </>
       ) : (

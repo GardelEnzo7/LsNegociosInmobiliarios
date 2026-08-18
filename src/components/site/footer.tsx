@@ -27,7 +27,7 @@ export function Footer() {
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-blanco-roto/60">
             Conectamos personas con su próxima propiedad en Rosario y alrededores, con
-            profesionalismo y dedicación en cada paso del camino.
+            profesionalismo y dedicación en cada paso.
           </p>
           <p className="mt-6 font-utility text-[11px] text-blanco-roto/40">{SITE.matricula}</p>
         </div>
@@ -37,11 +37,6 @@ export function Footer() {
             Navegación
           </p>
           <ul className="mt-4 space-y-2 text-sm">
-            <li>
-              <Link href="/" className="transition-colors duration-200 ease-out hover:text-blanco-roto">
-                Inicio
-              </Link>
-            </li>
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className="transition-colors duration-200 ease-out hover:text-blanco-roto">

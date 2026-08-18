@@ -20,7 +20,7 @@ export const ALL_SERVICES = [
     icon: IconKey,
     title: "Alquileres",
     description:
-      "Gestión completa de alquileres, desde la búsqueda hasta la administración de contratos.",
+      "Gestión completa de alquileres y administración de contratos.",
   },
   {
     icon: IconCalculator,

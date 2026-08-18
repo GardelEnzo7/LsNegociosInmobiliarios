@@ -38,11 +38,17 @@ export function ContactForm({
   return (
     <form action={formAction} className="space-y-4">
       {propertyId ? <input type="hidden" name="propertyId" value={propertyId} /> : null}
+      {/* Honeypot: hidden from real visitors, irresistible to bots that
+          auto-fill every field. Left empty by anyone using the actual form. */}
+      <div aria-hidden="true" className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden">
+        <label htmlFor="company">No completar este campo</label>
+        <input id="company" name="company" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
       <Field label="Nombre" name="name" error={state.errors?.name}>
-        <input id="name" name="name" type="text" autoComplete="name" className={inputClass} />
+        <input id="name" name="name" type="text" autoComplete="name" maxLength={100} className={inputClass} />
       </Field>
       <Field label="Teléfono o email" name="contact" error={state.errors?.contact}>
-        <input id="contact" name="contact" type="text" autoComplete="email" className={inputClass} />
+        <input id="contact" name="contact" type="text" autoComplete="email" maxLength={100} className={inputClass} />
       </Field>
       <Field label="Motivo de consulta" name="asunto">
         <div className="relative">
@@ -67,6 +73,7 @@ export function ContactForm({
           id="message"
           name="message"
           rows={4}
+          maxLength={2000}
           defaultValue={defaultMessage}
           className={inputClass}
         />

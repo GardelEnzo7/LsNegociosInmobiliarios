@@ -1,4 +1,6 @@
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://inmobiliariasenmache.com.ar"
+).replace(/\/$/, "");
 
 export const SITE = {
   name: "Laura Senmache Negocios Inmobiliarios",
@@ -11,6 +13,10 @@ export const SITE = {
   whatsappNumber: "5493417405211",
   email: "inmobiliariasenmache@gmail.com",
   matricula: "Mat. Nro: 2589 COCIR",
+  // No real Instagram profile is configured yet — leave unset rather than
+  // link to a placeholder. Set NEXT_PUBLIC_INSTAGRAM_URL once one exists;
+  // ContactSection only renders the icon when this is present.
+  instagramUrl: process.env.NEXT_PUBLIC_INSTAGRAM_URL || null,
   hours: [
     { label: "Lunes a viernes", value: "9:00 - 18:00" },
     { label: "Sábados", value: "9:00 - 13:00" },

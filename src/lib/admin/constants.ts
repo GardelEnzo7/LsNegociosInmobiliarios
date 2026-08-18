@@ -36,29 +36,6 @@ export const AVAILABILITY_TIERS: Record<string, StatusTier> = {
   alquilada: "won",
 };
 
-export const VISIT_STATUS_LABELS: Record<string, string> = {
-  programada: "Programada",
-  realizada: "Realizada",
-  cancelada: "Cancelada",
-  reprogramada: "Reprogramada",
-};
-
-export const VISIT_STATUS_TIERS: Record<string, StatusTier> = {
-  programada: "info",
-  realizada: "won",
-  cancelada: "lost",
-  reprogramada: "pending",
-};
-
-export const VISIT_STATUS_ORDER = ["programada", "realizada", "cancelada", "reprogramada"] as const;
-
-export const CONTACT_ROLE_LABELS: Record<string, string> = {
-  interesado: "Interesado",
-  propietario: "Propietario",
-  comprador: "Comprador",
-  inquilino: "Inquilino",
-};
-
 export const RENTAL_STATUS_LABELS: Record<string, string> = {
   activo: "Activo",
   finalizado: "Finalizado",
@@ -68,6 +45,23 @@ export const RENTAL_STATUS_TIERS: Record<string, StatusTier> = {
   activo: "info",
   finalizado: "neutral",
 };
+
+export const ADJUSTMENT_TYPE_LABELS: Record<string, string> = {
+  ipc: "IPC",
+  icl: "ICL",
+  otro: "Otro",
+};
+
+/** The five standard periodicities the business asked for, expressed as
+ * month counts — the column itself accepts any positive integer, this is
+ * just what the UI offers. */
+export const ADJUSTMENT_FREQUENCY_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: "Mensual" },
+  { value: 3, label: "Trimestral" },
+  { value: 4, label: "Cuatrimestral" },
+  { value: 6, label: "Semestral" },
+  { value: 12, label: "Anual" },
+];
 
 export const LISTING_STATUS_LABELS: Record<string, string> = {
   publicada: "Publicada",
@@ -88,13 +82,8 @@ export const ACTIVITY_EVENT_LABELS: Record<string, string> = {
   property_updated: "Propiedad modificada",
   price_changed: "Cambio de precio",
   availability_changed: "Cambio de estado comercial",
-  inquiry_created: "Nueva consulta",
-  inquiry_status_changed: "Consulta actualizada",
-  visit_created: "Visita programada",
-  visit_completed: "Visita realizada",
-  visit_cancelled: "Visita cancelada",
-  contact_created: "Cliente creado",
   deal_closed: "Operación cerrada",
+  rent_adjusted: "Ajuste de alquiler aplicado",
 };
 
 export function formatRelativeDate(iso: string): string {

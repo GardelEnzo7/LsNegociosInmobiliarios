@@ -154,6 +154,7 @@ function PropertyCard({ property, canDelete }: { property: PropertyWithImages; c
           tier={AVAILABILITY_TIERS[availability]}
           options={AVAILABILITY_OPTIONS}
           disabled={isPending}
+          ariaLabel={`Estado de la operación para ${property.title}`}
           onChange={(value) => {
             setAvailability(value);
             startTransition(() => updateAvailability(property.id, value));
@@ -197,7 +198,7 @@ function PropertyCard({ property, canDelete }: { property: PropertyWithImages; c
                   confirmLabel: "Eliminar",
                   destructive: true,
                 });
-                if (ok) startTransition(() => deleteProperty(property.id));
+                if (ok) startTransition(() => void deleteProperty(property.id));
               }}
               className="text-xs font-medium text-terracota hover:underline"
             >

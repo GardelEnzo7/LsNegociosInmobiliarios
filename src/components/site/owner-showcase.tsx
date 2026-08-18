@@ -1,11 +1,23 @@
 import { Reveal } from "@/components/site/reveal";
-import { IconPortrait } from "@/components/site/icons";
-import { PropertyCardCompact } from "@/components/site/property-card";
-import { getClosedProperties } from "@/lib/data/properties";
+import { OwnerPhotoModal } from "@/components/site/owner-photo-modal";
+import { getAgencyProfile } from "@/lib/data/showcase";
 import { SITE } from "@/lib/constants";
 
+const DEFAULT_BIO =
+  "Más de 5 años acompañando a familias rosarinas a comprar, vender y alquilar con confianza.";
+
+/**
+ * Editorial two-column layout, no card chrome around the photo/copy — just
+ * a large portrait and generous type. Photo comes first in markup so it's
+ * naturally first on mobile too (`lg:grid-cols-2` only kicks in the
+ * side-by-side arrangement at desktop widths).
+ */
 export async function OwnerShowcase() {
-  const closed = await getClosedProperties(3);
+  const profile = await getAgencyProfile();
+  const name = profile?.owner_name || SITE.displayName;
+  const license = profile?.owner_license || SITE.matricula;
+  const bio = profile?.owner_bio || DEFAULT_BIO;
+  const quote = profile?.owner_quote ?? null;
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 sm:px-10">
@@ -18,43 +30,34 @@ export async function OwnerShowcase() {
         </h2>
       </Reveal>
 
-      <div className="mt-14 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-center">
-        <Reveal>
-          <div className="rounded-2xl bg-blanco-roto p-6 shadow-[0_1px_3px_rgba(28,33,41,0.06)] sm:p-8">
-            <div className="mx-auto flex aspect-square w-40 items-center justify-center rounded-full bg-piedra/60 text-grafito/40 sm:w-48">
-              <IconPortrait className="h-16 w-16 sm:h-20 sm:w-20" />
-            </div>
-            <div className="mt-6 text-center">
-              <p className="font-display text-2xl text-grafito">{SITE.displayName}</p>
-              <p className="mt-1 font-utility text-[11px] uppercase tracking-[0.14em] text-petroleo">
-                Fundadora · {SITE.matricula}
-              </p>
-              <p className="mx-auto mt-4 max-w-xs font-body text-sm leading-relaxed text-grafito/60">
-                Más de 5 años acompañando a familias rosarinas a comprar, vender y alquilar
-                con confianza.
-              </p>
-            </div>
-          </div>
+      <div className="mt-14 grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+        <Reveal className="mx-auto w-full max-w-sm sm:max-w-md lg:mx-0 lg:max-w-md">
+          <OwnerPhotoModal
+            photoUrl={profile?.owner_photo_url ?? null}
+            photoAlt={profile?.owner_photo_alt ?? null}
+            name={name}
+            license={license}
+            bio={bio}
+            quote={quote}
+          />
         </Reveal>
 
         <Reveal delay={100}>
-          <div>
-            <p className="font-body text-sm text-grafito/60">
-              Un vistazo a algunas de las operaciones que fuimos cerrando.
+          <div className="mx-auto max-w-md text-center lg:mx-0 lg:max-w-none lg:text-left">
+            <p className="font-display text-3xl leading-[1.1] text-grafito sm:text-4xl lg:text-5xl">
+              {name}
             </p>
-            {closed.length > 0 ? (
-              <div className="mt-5 grid gap-4 sm:grid-cols-3">
-                {closed.map((property) => (
-                  <PropertyCardCompact key={property.id} property={property} />
-                ))}
-              </div>
-            ) : (
-              <div className="mt-5 flex min-h-[220px] items-center justify-center rounded-2xl bg-piedra/40 p-8 text-center">
-                <p className="max-w-xs font-body text-sm leading-relaxed text-grafito/50">
-                  Pronto vamos a mostrar acá operaciones reales que fuimos cerrando en Rosario.
-                </p>
-              </div>
-            )}
+            <p className="mt-3 font-utility text-[12px] uppercase tracking-[0.16em] text-petroleo">
+              Fundadora · {license}
+            </p>
+            <p className="mx-auto mt-6 max-w-md font-body text-base leading-relaxed text-grafito/70 lg:mx-0">
+              {bio}
+            </p>
+            {quote ? (
+              <p className="mx-auto mt-8 max-w-md border-l-2 border-petroleo/40 pl-5 text-left font-display text-lg italic leading-snug text-grafito/80 lg:mx-0">
+                &ldquo;{quote}&rdquo;
+              </p>
+            ) : null}
           </div>
         </Reveal>
       </div>

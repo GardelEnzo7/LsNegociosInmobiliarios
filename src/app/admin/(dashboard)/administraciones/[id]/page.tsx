@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RentalPayments } from "@/components/admin/rental-payments";
+import { RentalAdjustments } from "@/components/admin/rental-adjustments";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { RENTAL_STATUS_LABELS, RENTAL_STATUS_TIERS } from "@/lib/admin/constants";
-import { getContractById, getPaymentsForContract } from "@/lib/data/admin";
+import { getContractById, getPaymentsForContract, getAdjustmentsForContract } from "@/lib/data/admin";
 import { formatPrice } from "@/lib/utils";
 
 export default async function AdminAdministracionDetailPage({
@@ -16,7 +17,10 @@ export default async function AdminAdministracionDetailPage({
 
   if (!contract) notFound();
 
-  const payments = await getPaymentsForContract(id);
+  const [payments, adjustments] = await Promise.all([
+    getPaymentsForContract(id),
+    getAdjustmentsForContract(id),
+  ]);
 
   return (
     <div>
@@ -66,6 +70,13 @@ export default async function AdminAdministracionDetailPage({
             <StatusBadge tier={RENTAL_STATUS_TIERS[contract.status]} label={RENTAL_STATUS_LABELS[contract.status] ?? contract.status} />
           </div>
           {contract.notes ? <p className="mt-3 text-sm leading-relaxed text-grafito/70">{contract.notes}</p> : null}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="font-display text-[19px] text-grafito" style={{ fontWeight: 480 }}>Ajustes de alquiler</h2>
+        <div className="mt-3">
+          <RentalAdjustments contract={contract} adjustments={adjustments} />
         </div>
       </div>
 

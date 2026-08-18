@@ -45,27 +45,11 @@ export async function uploadPropertyImage(
   return supabase.storage.from(PROPERTY_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-/** Deletes storage objects for URLs that belong to our own bucket; silently
- * ignores externally-hosted URLs (e.g. legacy Unsplash links) since there is
- * nothing of ours to clean up for those. */
-export async function deleteStorageImagesByUrls(supabase: SupabaseClient<Database>, urls: string[]) {
-  const marker = `/storage/v1/object/public/${PROPERTY_IMAGES_BUCKET}/`;
-  const paths = urls
-    .filter((url) => url.includes(marker))
-    .map((url) => url.slice(url.indexOf(marker) + marker.length));
-
-  if (paths.length === 0) return;
-  await supabase.storage.from(PROPERTY_IMAGES_BUCKET).remove(paths);
-}
-
-/** Deletes every object under `${propertyId}/` in the bucket, regardless of
- * what `property_images` currently references. Used on property deletion so
- * uploads that never made it into a saved manifest (e.g. the user closed the
- * tab mid-upload) don't linger as orphans. */
-export async function deleteStorageImagesByPropertyId(supabase: SupabaseClient<Database>, propertyId: string) {
-  const { data: files } = await supabase.storage.from(PROPERTY_IMAGES_BUCKET).list(propertyId, { limit: 1000 });
-  if (!files || files.length === 0) return;
-
-  const paths = files.map((file) => `${propertyId}/${file.name}`);
-  await supabase.storage.from(PROPERTY_IMAGES_BUCKET).remove(paths);
-}
+// Deliberately no `deleteStorageImagesByUrls`/`ByPropertyId` here anymore:
+// Storage cleanup for this bucket never runs synchronously as part of a
+// property save/delete (see syncPropertyImages/deleteProperty in
+// src/app/actions/properties.ts for why — Postgres and Storage are two
+// different systems, so a "delete right after sync" here can only narrow a
+// race between concurrent saves, never close it). The only code that
+// removes objects from this bucket now is the separate, manual, admin-only
+// cleanup in src/app/actions/property-images-cleanup.ts.

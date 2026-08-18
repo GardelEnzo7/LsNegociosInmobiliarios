@@ -50,15 +50,17 @@ export function ContactSection({ topic }: { topic?: string }) {
               Seguinos en Redes
             </p>
             <div className="mt-3 flex gap-3">
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Instagram"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-piedra/50 text-grafito transition-colors duration-200 ease-out hover:bg-petroleo hover:text-blanco-roto"
-              >
-                <IconInstagram className="h-4 w-4" />
-              </a>
+              {SITE.instagramUrl ? (
+                <a
+                  href={SITE.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-piedra/50 text-grafito transition-colors duration-200 ease-out hover:bg-petroleo hover:text-blanco-roto"
+                >
+                  <IconInstagram className="h-4 w-4" />
+                </a>
+              ) : null}
               <a
                 href={whatsappLink("Hola, quiero más información sobre una propiedad.")}
                 target="_blank"
