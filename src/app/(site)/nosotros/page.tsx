@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/site/reveal";
 import { PropertyCardCompact } from "@/components/site/property-card";
+import { PropertyImage } from "@/components/site/property-image";
 import { getClosedProperties, getClosedPropertiesCount, getNeighborhoods } from "@/lib/data/properties";
+import { getAgencyProfile } from "@/lib/data/showcase";
 import { IconChart, IconHome, IconPortrait, IconUsers } from "@/components/site/icons";
 import { SITE } from "@/lib/constants";
 
@@ -37,10 +39,11 @@ const VALUES = [
 ];
 
 export default async function NosotrosPage() {
-  const [closed, closedCount, neighborhoods] = await Promise.all([
+  const [closed, closedCount, neighborhoods, profile] = await Promise.all([
     getClosedProperties(3),
     getClosedPropertiesCount(),
     getNeighborhoods(),
+    getAgencyProfile(),
   ]);
 
   const METRICS = [
@@ -74,9 +77,19 @@ export default async function NosotrosPage() {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start lg:gap-16">
           <Reveal className="lg:sticky lg:top-28">
             <div className="relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-2xl bg-piedra/50 ring-1 ring-grafito/5">
-              <div className="flex aspect-square w-40 items-center justify-center rounded-full bg-blanco-roto text-grafito/35 shadow-[0_1px_3px_rgba(28,33,41,0.06)] sm:w-48">
-                <IconPortrait className="h-16 w-16 sm:h-20 sm:w-20" />
-              </div>
+              {profile?.owner_photo_url ? (
+                <PropertyImage
+                  src={profile.owner_photo_url}
+                  alt={profile.owner_photo_alt || SITE.displayName}
+                  fill
+                  sizes="(min-width: 1024px) 40vw, 90vw"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex aspect-square w-40 items-center justify-center rounded-full bg-blanco-roto text-grafito/35 shadow-[0_1px_3px_rgba(28,33,41,0.06)] sm:w-48">
+                  <IconPortrait className="h-16 w-16 sm:h-20 sm:w-20" />
+                </div>
+              )}
             </div>
             <div className="mt-6 text-center">
               <p className="font-display text-2xl text-grafito">{SITE.displayName}</p>
