@@ -101,7 +101,13 @@ export function Footer() {
       </div>
       <div className="border-t border-blanco-roto/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-6 text-[11px] text-blanco-roto/40 sm:flex-row sm:items-center sm:justify-between sm:px-10">
-          <p>© {new Date().getFullYear()} {SITE.name}. Todos los derechos reservados.</p>
+          <p className="flex flex-wrap items-center gap-x-2">
+            <span>© {new Date().getFullYear()} {SITE.name}. Todos los derechos reservados.</span>
+            <span aria-hidden="true">·</span>
+            <Link href="/privacidad" className="transition-colors duration-200 ease-out hover:text-blanco-roto/70">
+              Política de privacidad
+            </Link>
+          </p>
           <p>{SITE.matricula}</p>
         </div>
       </div>
