@@ -39,9 +39,9 @@ export const SITE = {
  * this replaces (see the old costanera.jpg og:image, which claimed 1200×800
  * for a 3840×2560 file). */
 export const SITE_OG_IMAGE = {
-  url: "/images/og/og-image-ls-negocios-inmobiliarios-V2.png",
-  width: 3840,
-  height: 2560,
+  url: "/images/og/og-image-ls-negocios-inmobiliarios-V3.png",
+  width: 1200,
+  height: 630,
   alt: `${SITE.name} | Rosario`,
 };
 
