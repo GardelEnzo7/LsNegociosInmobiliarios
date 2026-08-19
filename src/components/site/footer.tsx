@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { NAV_LINKS, SITE, whatsappLink } from "@/lib/constants";
+import { IconInstagram, IconMail, IconWhatsapp } from "@/components/site/icons";
 
 const SERVICE_LINKS = [
   "Compra y Venta",
@@ -64,10 +65,38 @@ export function Footer() {
           <p className="font-utility text-[11px] uppercase tracking-[0.18em] text-petroleo-claro">
             Contacto
           </p>
-          <ul className="mt-4 space-y-2 text-sm">
-            <li>{SITE.phoneDisplay}</li>
-            <li>{SITE.email}</li>
-          </ul>
+          <div className="mt-4 flex items-center gap-3">
+            <a
+              href={whatsappLink("Hola, quiero más información sobre una propiedad.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`WhatsApp: ${SITE.phoneDisplay}`}
+              title={`WhatsApp: ${SITE.phoneDisplay}`}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-blanco-roto/50 transition-[color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:text-whatsapp"
+            >
+              <IconWhatsapp className="h-5 w-5" />
+            </a>
+            <a
+              href={`mailto:${SITE.email}`}
+              aria-label={`Email: ${SITE.email}`}
+              title={`Email: ${SITE.email}`}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-blanco-roto/50 transition-[color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:text-petroleo-claro"
+            >
+              <IconMail className="h-5 w-5" />
+            </a>
+            {SITE.instagramUrl ? (
+              <a
+                href={SITE.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram de LS Negocios Inmobiliarios"
+                title="Instagram de LS Negocios Inmobiliarios"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-blanco-roto/50 transition-[color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:text-instagram"
+              >
+                <IconInstagram className="h-5 w-5" />
+              </a>
+            ) : null}
+          </div>
           <a
             href={whatsappLink("Hola, quiero más información sobre una propiedad.")}
             target="_blank"

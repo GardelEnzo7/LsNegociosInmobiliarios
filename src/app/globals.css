@@ -11,6 +11,9 @@
   --color-blanco-roto: #ffffff;
   --color-whatsapp: #25d366;
   --color-whatsapp-dark: #1ebe5a;
+  /* Flat brand accent for hover states only (e.g. footer contact icons) —
+     not a literal Instagram gradient, see IconInstagram usages for why. */
+  --color-instagram: #e1306c;
 
   /* Admin-only state tones — same material-naming convention as the rest of
      the palette (plata/grafito/piedra/petróleo). Not a semaphore: bronce
@@ -39,6 +42,7 @@
   --color-blanco-roto: var(--color-blanco-roto);
   --color-whatsapp: var(--color-whatsapp);
   --color-whatsapp-dark: var(--color-whatsapp-dark);
+  --color-instagram: var(--color-instagram);
   --color-bronce: var(--color-bronce);
   --color-terracota: var(--color-terracota);
 
