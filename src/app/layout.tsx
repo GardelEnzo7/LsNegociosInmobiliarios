@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Manrope, IBM_Plex_Mono } from "next/font/google";
-import { SITE, SITE_URL } from "@/lib/constants";
+import { SITE, SITE_OG_IMAGE, SITE_URL } from "@/lib/constants";
 import { jsonLdString } from "@/lib/utils";
 import "./globals.css";
 
@@ -49,13 +49,13 @@ export const metadata: Metadata = {
     title: `${SITE.name} | Rosario`,
     description: DEFAULT_DESCRIPTION,
     url: "/",
-    images: [{ url: "/images/hero/costanera.jpg", width: 1200, height: 800, alt: "Costanera de Rosario" }],
+    images: [SITE_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE.name} | Rosario`,
     description: DEFAULT_DESCRIPTION,
-    images: ["/images/hero/costanera.jpg"],
+    images: [SITE_OG_IMAGE.url],
   },
 };
 
@@ -84,6 +84,7 @@ const organizationJsonLd = {
     "@type": "City",
     name: "Rosario",
   },
+  sameAs: [SITE.instagramUrl],
   founder: {
     "@type": "Person",
     name: SITE.displayName,

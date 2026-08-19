@@ -6,7 +6,7 @@ import { PropertyImage } from "@/components/site/property-image";
 import { getClosedProperties, getClosedPropertiesCount, getNeighborhoods } from "@/lib/data/properties";
 import { getAgencyProfile } from "@/lib/data/showcase";
 import { IconChart, IconHome, IconPortrait, IconUsers } from "@/components/site/icons";
-import { SITE } from "@/lib/constants";
+import { SITE, pageOpenGraph } from "@/lib/constants";
 
 const DESCRIPTION = "Más de 5 años acompañando operaciones de compra, venta y alquiler en Rosario.";
 
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "Nosotros",
   description: DESCRIPTION,
   alternates: { canonical: "/nosotros" },
-  openGraph: { title: "Nosotros", description: DESCRIPTION, url: "/nosotros" },
+  openGraph: { ...pageOpenGraph("Nosotros", DESCRIPTION), url: "/nosotros" },
 };
 
 const VALUES = [

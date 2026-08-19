@@ -31,6 +31,20 @@ export const SITE = {
   ],
 } as const;
 
+/** Official social-share image — the single global fallback for Open Graph
+ * and Twitter/X Card on every public page that doesn't have a more specific
+ * image of its own (a property's own cover photo still takes priority over
+ * this). Real file dimensions, not the 1200×630 "ideal" — declaring a size
+ * that doesn't match the actual file is exactly the metadata/asset mismatch
+ * this replaces (see the old costanera.jpg og:image, which claimed 1200×800
+ * for a 3840×2560 file). */
+export const SITE_OG_IMAGE = {
+  url: "/images/og/og-image-ls-negocios-inmobiliarios.png",
+  width: 1734,
+  height: 907,
+  alt: `${SITE.name} | Rosario`,
+};
+
 export const NAV_LINKS = [
   { href: "/", label: "Inicio" },
   { href: "/propiedades", label: "Propiedades" },
@@ -72,4 +86,20 @@ export const ORIENTATION_LABELS: Record<string, string> = {
 
 export function whatsappLink(message: string) {
   return `https://wa.me/${SITE.whatsappNumber}?text=${encodeURIComponent(message)}`;
+}
+
+/** Shared Open Graph fields every public page needs beyond its own
+ * title/description/url — `type`, `siteName` and `locale` are otherwise
+ * silently lost because Next.js replaces (doesn't merge) a segment's
+ * `openGraph` object wholesale when a page defines its own, instead of
+ * merging it field-by-field with the root layout's. */
+export function pageOpenGraph(title: string, description: string) {
+  return {
+    title,
+    description,
+    type: "website" as const,
+    siteName: SITE.name,
+    locale: "es_AR",
+    images: [SITE_OG_IMAGE],
+  };
 }

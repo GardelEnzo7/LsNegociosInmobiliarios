@@ -13,6 +13,7 @@ import {
   PROPERTY_TYPE_LABELS,
   AVAILABILITY_LABELS,
   SITE,
+  SITE_OG_IMAGE,
   SITE_URL,
   whatsappLink,
 } from "@/lib/constants";
@@ -100,13 +101,13 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       description,
       url: `/propiedades/${property.slug}`,
       type: "website",
-      images: cover ? [{ url: cover, width: 1200, height: 900, alt: property.title }] : undefined,
+      images: [cover ? { url: cover, width: 1200, height: 900, alt: property.title } : SITE_OG_IMAGE],
     },
     twitter: {
-      card: cover ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: cover ? [cover] : undefined,
+      images: [cover ?? SITE_OG_IMAGE.url],
     },
   };
 }

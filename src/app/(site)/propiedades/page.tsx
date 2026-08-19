@@ -4,6 +4,7 @@ import { PropertiesMapLoader } from "@/components/site/properties-map-loader";
 import { PropertyCard } from "@/components/site/property-card";
 import { Reveal } from "@/components/site/reveal";
 import { getNeighborhoods, getProperties, getPriceRangesByCurrency } from "@/lib/data/properties";
+import { pageOpenGraph } from "@/lib/constants";
 
 const DESCRIPTION =
   "Explorá casas, departamentos, PH, terrenos, locales y oficinas en venta y alquiler en Rosario.";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   title: "Propiedades en Rosario",
   description: DESCRIPTION,
   alternates: { canonical: "/propiedades" },
-  openGraph: { title: "Propiedades en Rosario", description: DESCRIPTION, url: "/propiedades" },
+  openGraph: { ...pageOpenGraph("Propiedades en Rosario", DESCRIPTION), url: "/propiedades" },
 };
 
 type SearchParams = Promise<{

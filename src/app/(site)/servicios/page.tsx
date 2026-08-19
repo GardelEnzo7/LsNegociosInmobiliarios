@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Reveal } from "@/components/site/reveal";
 import { ALL_SERVICES } from "@/components/site/services";
+import { pageOpenGraph } from "@/lib/constants";
 
 const DESCRIPTION =
   "Compra, venta, alquiler, tasaciones, asesoramiento, inversiones y administración de propiedades en Rosario.";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   title: "Servicios",
   description: DESCRIPTION,
   alternates: { canonical: "/servicios" },
-  openGraph: { title: "Servicios", description: DESCRIPTION, url: "/servicios" },
+  openGraph: { ...pageOpenGraph("Servicios", DESCRIPTION), url: "/servicios" },
 };
 
 const [primary, ...secondary] = ALL_SERVICES;
