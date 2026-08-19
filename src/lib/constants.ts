@@ -40,8 +40,8 @@ export const SITE = {
  * for a 3840×2560 file). */
 export const SITE_OG_IMAGE = {
   url: "/images/og/og-image-ls-negocios-inmobiliarios-V2.png",
-  width: 1734,
-  height: 907,
+  width: 3840,
+  height: 2560,
   alt: `${SITE.name} | Rosario`,
 };
 
