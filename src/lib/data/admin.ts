@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { sortImages } from "@/lib/data/properties";
 
 export async function getAllProperties() {
   const supabase = await createClient();
@@ -7,7 +8,7 @@ export async function getAllProperties() {
     .select("*, property_images(*)")
     .order("created_at", { ascending: false });
 
-  return data ?? [];
+  return (data ?? []).map(sortImages);
 }
 
 export async function getPropertyById(id: string) {
@@ -18,7 +19,7 @@ export async function getPropertyById(id: string) {
     .eq("id", id)
     .maybeSingle();
 
-  return data;
+  return data ? sortImages(data) : null;
 }
 
 export async function getAdminProfileForCurrentUser() {

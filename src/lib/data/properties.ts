@@ -163,7 +163,10 @@ export async function getNeighborhoods(): Promise<string[]> {
   return Array.from(new Set((data ?? []).map((row) => row.neighborhood))).sort();
 }
 
-function sortImages(property: PropertyWithImages): PropertyWithImages {
+/** `property_images` order is not guaranteed by Postgres/PostgREST — `position`
+ * is the single source of truth for display and cover-photo (`[0]`) order
+ * everywhere a property's images are read, public site and admin alike. */
+export function sortImages(property: PropertyWithImages): PropertyWithImages {
   return {
     ...property,
     property_images: [...property.property_images].sort((a, b) => a.position - b.position),
