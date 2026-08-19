@@ -97,14 +97,6 @@ export function Footer() {
               </a>
             ) : null}
           </div>
-          <a
-            href={whatsappLink("Hola, quiero más información sobre una propiedad.")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-whatsapp px-5 py-2.5 font-utility text-[11px] font-medium uppercase tracking-[0.08em] text-white transition-[background-color,transform] duration-200 ease-out hover:bg-whatsapp-dark active:scale-[0.97]"
-          >
-            Escribinos
-          </a>
         </div>
       </div>
       <div className="border-t border-blanco-roto/10">
