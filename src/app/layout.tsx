@@ -15,7 +15,10 @@ const fraunces = Fraunces({
 const manrope = Manrope({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  // 700 (font-bold) is never used anywhere in the app — confirmed via a
+  // whole-repo search — so it's one fewer font file preloaded/downloaded
+  // on every page for zero visual difference.
+  weight: ["400", "500", "600"],
 });
 
 const plexMono = IBM_Plex_Mono({
