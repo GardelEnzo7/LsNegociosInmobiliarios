@@ -84,6 +84,11 @@ const organizationJsonLd = {
     "@type": "City",
     name: "Rosario",
   },
+  founder: {
+    "@type": "Person",
+    name: SITE.displayName,
+    jobTitle: "Fundadora",
+  },
   ...(OPENING_HOURS.length > 0 ? { openingHours: OPENING_HOURS } : {}),
 };
 

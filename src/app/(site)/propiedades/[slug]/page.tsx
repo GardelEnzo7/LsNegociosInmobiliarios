@@ -16,7 +16,7 @@ import {
   SITE_URL,
   whatsappLink,
 } from "@/lib/constants";
-import { getPropertyBySlug, getSimilarProperties } from "@/lib/data/properties";
+import { getPropertyBySlug, getSimilarProperties, type PropertyWithImages } from "@/lib/data/properties";
 import { formatPrice, jsonLdString } from "@/lib/utils";
 
 type Params = Promise<{ slug: string }>;
@@ -28,17 +28,67 @@ const AVAILABILITY_SCHEMA: Record<string, string> = {
   alquilada: "https://schema.org/SoldOut",
 };
 
+/** "Casa en venta en Las Delicias, Rosario" — type, operation and
+ * neighborhood are NOT NULL columns, so this is always buildable from real
+ * data. Deliberately bare (no brand suffix), same convention every other
+ * page in this app follows (see servicios/contacto/nosotros/propiedades):
+ * the root layout's `title.template` appends " | {SITE.name}" already, so
+ * adding it here too would double it up. Only used when the admin hasn't
+ * set an explicit `meta_title` for this property. */
+function buildAutoTitle(property: PropertyWithImages): string {
+  const typeLabel = PROPERTY_TYPE_LABELS[property.property_type] ?? property.property_type;
+  const operationLabel = (OPERATION_LABELS[property.operation] ?? property.operation).toLowerCase();
+  return `${typeLabel} en ${operationLabel} en ${property.neighborhood}, Rosario`;
+}
+
+/** Data-driven summary ("Casa en venta en Las Delicias, Rosario. 3
+ * ambientes, 2 dormitorios, 109 m². USD 55.000. <real description
+ * snippet>") instead of a blind truncation of the free-text description —
+ * only used when the admin hasn't set an explicit `meta_description`.
+ * Kept within ~160 chars (Google's usual meta description cutoff). */
+function buildAutoDescription(property: PropertyWithImages): string {
+  const typeLabel = PROPERTY_TYPE_LABELS[property.property_type] ?? property.property_type;
+  const operationLabel = (OPERATION_LABELS[property.operation] ?? property.operation).toLowerCase();
+  const intro = `${typeLabel} en ${operationLabel} en ${property.neighborhood}, Rosario.`;
+
+  const facts = [
+    property.rooms ? `${property.rooms} ambiente${property.rooms > 1 ? "s" : ""}` : null,
+    property.bedrooms ? `${property.bedrooms} dormitorio${property.bedrooms > 1 ? "s" : ""}` : null,
+    property.m2_total ? `${property.m2_total} m²` : null,
+  ].filter(Boolean) as string[];
+
+  const priceText =
+    property.price > 0
+      ? `${formatPrice(property.price, property.currency as "USD" | "ARS")}${property.operation === "alquiler" ? "/mes" : ""}.`
+      : null;
+
+  const head = [intro, facts.length > 0 ? `${facts.join(", ")}.` : null, priceText]
+    .filter(Boolean)
+    .join(" ");
+
+  const MAX_LENGTH = 160;
+  const descriptionText = property.description.trim();
+  const remaining = MAX_LENGTH - head.length - 1;
+
+  if (remaining <= 20 || !descriptionText) {
+    return head.length > MAX_LENGTH ? `${head.slice(0, MAX_LENGTH - 1).trimEnd()}…` : head;
+  }
+
+  const snippet =
+    descriptionText.length > remaining
+      ? `${descriptionText.slice(0, remaining - 1).trimEnd()}…`
+      : descriptionText;
+
+  return `${head} ${snippet}`;
+}
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const property = await getPropertyBySlug(slug);
   if (!property) return {};
 
-  const title =
-    property.meta_title ||
-    `${property.title} en ${OPERATION_LABELS[property.operation]?.toLowerCase() ?? property.operation}, ${property.neighborhood}`;
-  const description =
-    property.meta_description ||
-    (property.description.length > 160 ? `${property.description.slice(0, 157)}…` : property.description);
+  const title = property.meta_title || buildAutoTitle(property);
+  const description = property.meta_description || buildAutoDescription(property);
   const cover = property.property_images[0]?.url;
 
   return {
