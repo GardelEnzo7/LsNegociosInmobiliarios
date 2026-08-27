@@ -14,6 +14,18 @@ import { IconArea, IconBed, IconPin } from "@/components/site/icons";
 
 const FALLBACK_CENTER: [number, number] = [-32.9468, -60.6393];
 
+const CARTO_API_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAPS_API_KEY;
+
+if (process.env.NODE_ENV === "development" && !CARTO_API_KEY) {
+  console.warn(
+    "[properties-map] Falta NEXT_PUBLIC_CARTO_BASEMAPS_API_KEY: los tiles de CARTO mostrarán 'API key required'. Definila en .env.local."
+  );
+}
+
+const CARTO_TILE_URL = `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${
+  CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ""
+}`;
+
 /** typeof check (not truthy) so a legitimate 0 lat/lng never gets treated
  * as "missing" — irrelevant in Rosario in practice, but cheap to get right. */
 function hasCoordinates(p: PropertyWithImages): p is PropertyWithImages & { lat: number; lng: number } {
@@ -62,7 +74,7 @@ export function PropertiesMap({ properties }: { properties: PropertyWithImages[]
       <MapBoundsSync points={points} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        url={CARTO_TILE_URL}
       />
       {points.map((property) => {
         const cover = property.property_images[0];
