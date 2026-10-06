@@ -7,6 +7,8 @@ import { RENTAL_STATUS_LABELS, RENTAL_STATUS_TIERS } from "@/lib/admin/constants
 import { StatusSelect } from "@/components/admin/status-badge";
 import { useConfirm } from "@/components/admin/ui/confirm-dialog";
 import { EmptyState } from "@/components/admin/ui/empty-state";
+import { buttonClass } from "@/components/admin/ui/button";
+import { chipClass, pendingChipClass } from "@/components/admin/ui/chip";
 import { cn, formatPrice } from "@/lib/utils";
 
 const RENTAL_STATUS_OPTIONS = Object.entries(RENTAL_STATUS_LABELS).map(([value, label]) => ({ value, label }));
@@ -31,11 +33,13 @@ export function RentalContractsList({ contracts, canDelete = true }: { contracts
   }
 
   return (
-    <div className="space-y-3">
+    <ul className="space-y-3">
       {contracts.map((contract) => (
-        <ContractCard key={contract.id} contract={contract} canDelete={canDelete} />
+        <li key={contract.id}>
+          <ContractCard contract={contract} canDelete={canDelete} />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -46,22 +50,23 @@ function ContractCard({ contract, canDelete }: { contract: Contract; canDelete: 
   return (
     <div
       className={cn(
-        "rounded-xl border border-grafito/10 bg-blanco-roto p-5 transition-opacity duration-150",
+        "rounded-2xl bg-blanco-roto p-5 ring-1 ring-grafito/[0.07] transition-opacity duration-150 sm:p-6",
         isPending && "opacity-50",
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <Link
             href={`/admin/administraciones/${contract.id}`}
-            className="font-medium text-grafito hover:text-petroleo"
+            className="font-display text-[17px] leading-snug text-grafito transition-colors duration-150 ease-out hover:text-petroleo"
+            style={{ fontWeight: 480 }}
           >
             {contract.properties?.title ?? "Propiedad eliminada"}
           </Link>
-          <p className="mt-0.5 text-xs text-grafito/50">
+          <p className="mt-1 text-sm text-grafito/60">
             Cliente: {contract.owner?.full_name ?? "—"} · Inquilino: {contract.tenant?.full_name ?? "—"}
           </p>
-          <p className="mt-0.5 text-xs text-grafito/40">
+          <p className="mt-0.5 text-xs tabular-nums text-grafito/50">
             {contract.start_date} → {contract.end_date ?? "en curso"}
           </p>
         </div>
@@ -75,27 +80,22 @@ function ContractCard({ contract, canDelete }: { contract: Contract; canDelete: 
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-grafito">
-        <span className="rounded-full bg-piedra/50 px-2.5 py-1">
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className={chipClass}>
           Alquiler: {formatPrice(contract.rent_amount, contract.rent_currency as "USD" | "ARS")}
         </span>
         {contract.expensas_amount ? (
-          <span className="rounded-full bg-piedra/50 px-2.5 py-1">
-            Expensas: {formatPrice(contract.expensas_amount, "ARS")}
-          </span>
+          <span className={chipClass}>Expensas: {formatPrice(contract.expensas_amount, "ARS")}</span>
         ) : null}
         {contract.adjustment_next_date ? (
-          <span className="rounded-full bg-bronce/[0.14] px-2.5 py-1 text-bronce">
+          <span className={pendingChipClass}>
             Próximo ajuste: {contract.adjustment_next_date}
           </span>
         ) : null}
       </div>
 
-      <div className="mt-4 flex items-center gap-4">
-        <Link
-          href={`/admin/administraciones/${contract.id}`}
-          className="text-xs font-medium text-petroleo hover:underline"
-        >
+      <div className="-mx-2.5 mt-4 flex items-center gap-1 border-t border-grafito/[0.06] pt-3">
+        <Link href={`/admin/administraciones/${contract.id}`} className={buttonClass("ghost", "sm")}>
           Ver detalle y pagos
         </Link>
         {canDelete ? (
@@ -105,7 +105,7 @@ function ContractCard({ contract, canDelete }: { contract: Contract; canDelete: 
               const ok = await confirm({ title: "¿Eliminar esta administración?", confirmLabel: "Eliminar", destructive: true });
               if (ok) startTransition(() => deleteContract(contract.id));
             }}
-            className="text-xs font-medium text-terracota hover:underline"
+            className={buttonClass("danger", "sm", "ml-auto")}
           >
             Eliminar
           </button>

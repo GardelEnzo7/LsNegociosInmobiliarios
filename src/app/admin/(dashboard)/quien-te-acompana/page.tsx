@@ -6,10 +6,10 @@ export default async function AdminOwnerShowcasePage() {
   const profile = await getAgencyProfileAdmin();
 
   return (
-    <div>
+    <div className="max-w-2xl">
       <PageHeader title="Quién te acompaña" subtitle="Foto y datos de la fundadora en la home." />
 
-      <div className="mt-6 max-w-2xl">
+      <div className="mt-8">
         <AgencyProfileForm profile={profile} />
       </div>
     </div>

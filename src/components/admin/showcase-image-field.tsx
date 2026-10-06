@@ -1,11 +1,12 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { ShowcaseImageUploadError, uploadShowcaseImage } from "@/lib/admin/showcase-images";
 import { ImageOptimizeError, optimizeImageFile } from "@/lib/admin/image-optimize";
 import { cn } from "@/lib/utils";
+import { buttonClass } from "@/components/admin/ui/button";
 
 /**
  * Single-photo picker: optimizes + uploads straight to the showcase-images
@@ -31,7 +32,6 @@ export function ShowcaseImageField({
   const [previewUrl, setPreviewUrl] = useState(initialUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const pickerId = useId();
 
   async function handlePick(fileList: FileList | null) {
     const file = fileList?.[0];
@@ -66,10 +66,10 @@ export function ShowcaseImageField({
   return (
     <div>
       <input type="hidden" name={name} value={url} />
-      <div className="flex items-center gap-4">
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-piedra ring-1 ring-grafito/10">
+      <div className="flex items-center gap-5">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-piedra ring-1 ring-grafito/10">
           {previewUrl ? (
-            <Image src={previewUrl} alt="" fill unoptimized sizes="80px" className="object-cover" />
+            <Image src={previewUrl} alt="" fill unoptimized sizes="96px" className="object-cover" />
           ) : (
             <span className="flex h-full w-full items-center justify-center font-utility text-[9px] uppercase text-grafito/35">
               Sin foto
@@ -82,26 +82,27 @@ export function ShowcaseImageField({
           ) : null}
         </div>
         <div>
+          <p className="font-utility text-[11px] font-medium uppercase tracking-[0.04em] text-grafito/60">Foto</p>
+          {/* The input lives inside the label so its keyboard focus shows on
+              the visible button (has-[:focus-visible]). */}
           <label
-            htmlFor={pickerId}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-grafito/10 px-3 py-2 text-xs font-medium text-grafito transition-colors duration-150 ease-out hover:bg-piedra/40",
+              buttonClass("secondary", "sm", "mt-2 cursor-pointer has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-petroleo-claro"),
               (disabled || uploading) && "pointer-events-none opacity-50",
             )}
           >
             {url ? "Cambiar imagen" : "Subir imagen"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              disabled={disabled || uploading}
+              onChange={(event) => {
+                handlePick(event.target.files);
+                event.target.value = "";
+              }}
+              className="sr-only"
+            />
           </label>
-          <input
-            id={pickerId}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            disabled={disabled || uploading}
-            onChange={(event) => {
-              handlePick(event.target.files);
-              event.target.value = "";
-            }}
-            className="sr-only"
-          />
           {error ? <p className="mt-1.5 text-xs text-terracota">{error}</p> : null}
         </div>
       </div>

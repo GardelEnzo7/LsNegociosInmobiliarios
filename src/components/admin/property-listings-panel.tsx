@@ -5,6 +5,7 @@ import { upsertPropertyListing } from "@/app/actions/property-listings";
 import { LISTING_STATUS_LABELS, LISTING_STATUS_TIERS } from "@/lib/admin/constants";
 import { StatusBadge, StatusSelect } from "@/components/admin/status-badge";
 import { Panel } from "@/components/admin/ui/panel";
+import { Notice } from "@/components/admin/ui/notice";
 
 const CHANNEL_LABELS: Record<string, string> = {
   web_ls: "Sitio web LS",
@@ -42,12 +43,12 @@ export function PropertyListingsPanel({
 
   return (
     <Panel>
-      <div className="rounded-lg bg-bronce/[0.12] px-4 py-3 text-xs text-bronce">
+      <Notice>
         No hay integraciones automáticas activas todavía. Esta sección es un panel de seguimiento manual,
         preparado para conectarse a APIs oficiales cuando estén disponibles las credenciales.
-      </div>
+      </Notice>
 
-      <div className="mt-4 space-y-3">
+      <ul className="mt-5 divide-y divide-grafito/[0.06] border-t border-grafito/[0.06]">
         <ListingRow
           channel="web_ls"
           label={CHANNEL_LABELS.web_ls}
@@ -71,7 +72,7 @@ export function PropertyListingsPanel({
             />
           );
         })}
-      </div>
+      </ul>
     </Panel>
   );
 }
@@ -98,9 +99,9 @@ function ListingRow({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="rounded-xl border border-grafito/10 bg-blanco-roto p-4">
+    <li className="py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-medium text-grafito/80">{label}</p>
+        <p className="text-sm font-medium text-grafito">{label}</p>
         {readOnly ? (
           <StatusBadge tier={LISTING_STATUS_TIERS[status]} label={LISTING_STATUS_LABELS[status]} />
         ) : (
@@ -123,12 +124,12 @@ function ListingRow({
         )}
       </div>
       {readOnly ? (
-        <p className="mt-2 text-xs text-grafito/40">
+        <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-grafito/55">
           Se actualiza automáticamente según el estado de publicación del sitio.
         </p>
       ) : integrationNote ? (
-        <p className="mt-2 text-xs text-grafito/40">{integrationNote}</p>
+        <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-grafito/55">{integrationNote}</p>
       ) : null}
-    </div>
+    </li>
   );
 }

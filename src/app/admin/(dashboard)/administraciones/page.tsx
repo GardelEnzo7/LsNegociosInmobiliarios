@@ -12,10 +12,10 @@ export default async function AdminAdministracionesPage() {
   ]);
 
   return (
-    <div>
+    <div className="max-w-4xl">
       <PageHeader title="Administraciones" subtitle={`${contracts.length} en total.`} />
 
-      <div className="mt-6 max-w-3xl space-y-6">
+      <div className="mt-8 space-y-5">
         <RentalContractForm properties={properties} />
         <RentalContractsList contracts={contracts} canDelete={role === "admin"} />
       </div>

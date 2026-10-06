@@ -13,13 +13,22 @@ import {
   IconPortrait,
   IconStar,
 } from "@/components/site/icons";
+import { IconExternal, IconLogout } from "@/components/admin/ui/icons";
 
-const OPERATIVE_LINKS = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: (props: { className?: string }) => React.ReactElement;
+  exact?: boolean;
+  adminOnly?: boolean;
+};
+
+const OPERATIVE_LINKS: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: IconHome, exact: true },
   { href: "/admin/propiedades", label: "Propiedades", icon: IconBuilding },
 ];
 
-const MANAGEMENT_LINKS = [
+const MANAGEMENT_LINKS: NavItem[] = [
   { href: "/admin/administraciones", label: "Administraciones", icon: IconKey },
   { href: "/admin/quien-te-acompana", label: "Quién te acompaña", icon: IconStar },
   { href: "/admin/estadisticas", label: "Estadísticas", icon: IconChart },
@@ -28,6 +37,10 @@ const MANAGEMENT_LINKS = [
 
 const ROLE_LABELS: Record<string, string> = { admin: "Administrador", agente: "Asesor" };
 
+export function isNavActive(pathname: string, href: string, exact?: boolean) {
+  return exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
+}
+
 export function Sidebar({
   role,
   profileName,
@@ -35,97 +48,135 @@ export function Sidebar({
   role?: string | null;
   profileName?: string | null;
 }) {
-  const pathname = usePathname();
-  const managementLinks = MANAGEMENT_LINKS.filter((link) => !link.adminOnly || role === "admin");
-
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
-
   return (
-    <aside className="hidden h-screen w-64 shrink-0 flex-col bg-grafito-dark lg:sticky lg:top-0 lg:flex">
-      <div className="flex items-center gap-2.5 border-b border-blanco-roto/10 px-5 py-5">
+    <aside className="hidden h-screen w-60 shrink-0 flex-col bg-grafito-dark lg:sticky lg:top-0 lg:flex">
+      <div className="flex items-center gap-2.5 px-5 pb-6 pt-6">
         <Image src="/Logo-3.webp" alt="" width={26} height={26} className="h-[26px] w-[26px]" />
         <div>
           <p className="font-display text-[15px] leading-tight text-blanco-roto" style={{ fontWeight: 480 }}>
             LS Gestión
           </p>
-          <p className="font-utility text-[9px] uppercase tracking-[0.14em] text-petroleo-claro">
+          <p className="mt-0.5 font-utility text-[9px] uppercase tracking-[0.14em] text-petroleo-claro/80">
             Panel inmobiliario
           </p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
-        <div className="space-y-0.5">
-          {OPERATIVE_LINKS.map((link) => (
-            <NavLink key={link.href} link={link} active={isActive(link.href, link.exact)} />
-          ))}
-        </div>
+      <AdminNav role={role} />
 
-        <div>
-          <p className="px-3 font-utility text-[10px] font-medium uppercase tracking-[0.12em] text-blanco-roto/35">
-            Gestión
-          </p>
-          <div className="mt-2 space-y-0.5">
-            {managementLinks.map((link) => (
-              <NavLink key={link.href} link={link} active={isActive(link.href)} />
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      <div className="border-t border-blanco-roto/10 p-3">
-        {profileName ? (
-          <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blanco-roto/10 font-display text-sm text-petroleo-claro">
-              {profileName.charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm text-blanco-roto/90">{profileName}</p>
-              <p className="text-[11px] text-blanco-roto/40">{role ? ROLE_LABELS[role] ?? role : ""}</p>
-            </div>
-          </div>
-        ) : null}
-        <Link
-          href="/"
-          target="_blank"
-          className="block rounded-lg px-3 py-2 text-sm text-blanco-roto/50 transition-colors duration-150 ease-out hover:bg-blanco-roto/[0.06] hover:text-blanco-roto/80"
-        >
-          Ver sitio público ↗
-        </Link>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="w-full rounded-lg px-3 py-2 text-left text-sm text-blanco-roto/50 transition-colors duration-150 ease-out hover:bg-blanco-roto/[0.06] hover:text-blanco-roto/80"
-          >
-            Cerrar sesión
-          </button>
-        </form>
-      </div>
+      <SidebarFooter role={role} profileName={profileName} />
     </aside>
+  );
+}
+
+/** Link groups shared by the desktop sidebar and the mobile drawer. */
+export function AdminNav({
+  role,
+  size = "md",
+  onNavigate,
+}: {
+  role?: string | null;
+  size?: "md" | "lg";
+  onNavigate?: () => void;
+}) {
+  const pathname = usePathname();
+  const managementLinks = MANAGEMENT_LINKS.filter((link) => !link.adminOnly || role === "admin");
+
+  return (
+    <nav aria-label="Panel" className="flex-1 space-y-7 overflow-y-auto px-3 pb-6">
+      <ul className="space-y-0.5">
+        {OPERATIVE_LINKS.map((link) => (
+          <li key={link.href}>
+            <NavLink link={link} size={size} active={isNavActive(pathname, link.href, link.exact)} onNavigate={onNavigate} />
+          </li>
+        ))}
+      </ul>
+
+      <div>
+        <p className="px-3 font-utility text-[10px] font-medium uppercase tracking-[0.12em] text-blanco-roto/35">
+          Gestión
+        </p>
+        <ul className="mt-2 space-y-0.5">
+          {managementLinks.map((link) => (
+            <li key={link.href}>
+              <NavLink link={link} size={size} active={isNavActive(pathname, link.href)} onNavigate={onNavigate} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </nav>
   );
 }
 
 function NavLink({
   link,
   active,
+  size,
+  onNavigate,
 }: {
-  link: { href: string; label: string; icon: (props: { className?: string }) => React.ReactElement };
+  link: NavItem;
   active: boolean;
+  size: "md" | "lg";
+  onNavigate?: () => void;
 }) {
   const Icon = link.icon;
   return (
     <Link
       href={link.href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150 ease-out",
-        active ? "bg-blanco-roto/10 text-blanco-roto" : "text-blanco-roto/55 hover:bg-blanco-roto/[0.06] hover:text-blanco-roto/85",
+        "relative flex items-center gap-3 rounded-lg px-3 transition-colors duration-150 ease-out",
+        size === "lg" ? "min-h-11 text-[15px]" : "h-9 text-sm",
+        active
+          ? "bg-blanco-roto/[0.08] text-blanco-roto before:absolute before:inset-y-2 before:left-0 before:w-[2px] before:rounded-full before:bg-petroleo-claro"
+          : "text-blanco-roto/55 hover:bg-blanco-roto/[0.05] hover:text-blanco-roto/90",
       )}
     >
       <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-petroleo-claro" : "text-blanco-roto/40")} />
-      <span className="flex-1">{link.label}</span>
+      <span className="flex-1 truncate">{link.label}</span>
     </Link>
   );
 }
 
-export { OPERATIVE_LINKS, MANAGEMENT_LINKS };
+export function SidebarFooter({
+  role,
+  profileName,
+  size = "md",
+}: {
+  role?: string | null;
+  profileName?: string | null;
+  size?: "md" | "lg";
+}) {
+  const itemClass = cn(
+    "flex w-full items-center gap-3 rounded-lg px-3 text-left text-blanco-roto/55 transition-colors duration-150 ease-out hover:bg-blanco-roto/[0.05] hover:text-blanco-roto/90",
+    size === "lg" ? "min-h-11 text-[15px]" : "h-9 text-sm",
+  );
+
+  return (
+    <div className="border-t border-blanco-roto/[0.08] p-3">
+      {profileName ? (
+        <div className="mb-1 flex items-center gap-3 px-3 py-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blanco-roto/10 font-display text-sm text-petroleo-claro">
+            {profileName.charAt(0).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm text-blanco-roto/90">{profileName}</p>
+            <p className="text-[11px] text-blanco-roto/45">{role ? ROLE_LABELS[role] ?? role : ""}</p>
+          </div>
+        </div>
+      ) : null}
+      <Link href="/" target="_blank" className={itemClass}>
+        <IconExternal className="h-4 w-4 shrink-0 text-blanco-roto/40" />
+        Ver sitio público
+        <span className="sr-only">(se abre en una pestaña nueva)</span>
+      </Link>
+      <form action={logout}>
+        <button type="submit" className={itemClass}>
+          <IconLogout className="h-4 w-4 shrink-0 text-blanco-roto/40" />
+          Cerrar sesión
+        </button>
+      </form>
+    </div>
+  );
+}

@@ -1,11 +1,39 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
-import Image from "next/image";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  defaultDropAnimation,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+  type DragStartEvent,
+  type UniqueIdentifier,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { ImageUploadError, MAX_IMAGE_BYTES, uploadPropertyImage } from "@/lib/admin/property-images";
 import { ImageOptimizeError, optimizeImageFile } from "@/lib/admin/image-optimize";
 import { createClient } from "@/lib/supabase/client";
 import { mapWithConcurrency } from "@/lib/admin/upload-queue";
+import { PropertyPhotoCard, PropertyPhotoDragPreview } from "@/components/admin/property-photo-card";
+import { buttonClass } from "@/components/admin/ui/button";
+import { IconImagePlus } from "@/components/admin/ui/icons";
 import { cn } from "@/lib/utils";
 
 // Hint for the OS file picker only — actual validation happens by trying to
@@ -18,9 +46,37 @@ const ACCEPT_ATTR = "image/jpeg,image/png,image/webp,image/avif,image/heic,image
 // uploading well ahead of one-at-a-time.
 const UPLOAD_CONCURRENCY = 3;
 
-type ImageItem = {
+const DROP_ANIMATION = { ...defaultDropAnimation, duration: 220, easing: "cubic-bezier(0.23, 1, 0.32, 1)" };
+
+const SCREEN_READER_INSTRUCTIONS = {
+  draggable:
+    "Para mover la foto con el teclado, presioná Espacio o Enter para levantarla, usá las flechas para elegir la nueva posición y presioná Espacio o Enter para soltarla. Escape cancela. La primera foto es la portada.",
+};
+
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia(REDUCED_MOTION_QUERY);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+/** Card reflow transitions are plain CSS and already neutralized by the
+ * global reduced-motion rule in globals.css — the drop animation runs on
+ * the Web Animations API instead, which that rule can't reach. */
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    () => false,
+  );
+}
+
+export type ImageItem = {
   key: string;
   url: string;
+  /** Not editable in the UI anymore, but still carried through `commit` so
+   * saving never blanks an ALT a photo already has in property_images. */
   alt: string;
   file?: File;
   previewUrl: string;
@@ -57,8 +113,17 @@ export const PropertyImagesManager = forwardRef<
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [processing, setProcessing] = useState<{ done: number; total: number } | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
-  const pickerId = useId();
+  // Drag-session UI only (which photo the overlay shows) — never the order.
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const reducedMotion = usePrefersReducedMotion();
+  // dnd-kit's own id counter differs between SSR and the client, which
+  // breaks hydration of the aria-describedby it puts on every handle.
+  const dndId = useId();
 
+  const gridRef = useRef<HTMLUListElement>(null);
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const pendingFocusRef = useRef<{ key: string } | "add" | null>(null);
   const itemsRef = useRef(items);
   const commitRef = useRef<{ propertyId: string; resolve: (v: { url: string; alt: string }[]) => void } | null>(null);
 
@@ -109,7 +174,7 @@ export const PropertyImagesManager = forwardRef<
           errors.push(`"${file.name}": sigue pesando demasiado incluso optimizada (máx. 8MB).`);
         } else {
           next.push({
-            key: `new-${Date.now()}-${index}`,
+            key: `new-${crypto.randomUUID()}`,
             url: "",
             alt: "",
             file: optimized,
@@ -129,39 +194,103 @@ export const PropertyImagesManager = forwardRef<
     setProcessing(null);
   }
 
-  function removeItem(key: string) {
-    updateItems((current) => {
-      const target = current.find((item) => item.key === key);
-      if (target?.file) URL.revokeObjectURL(target.previewUrl);
-      return current.filter((item) => item.key !== key);
-    });
-  }
+  // "Hacer portada" disappears from the photo it was pressed on, and
+  // "Quitar" removes its whole card — focus is re-placed on a photo handle
+  // (or the add button) once React has committed the change.
+  useEffect(() => {
+    const request = pendingFocusRef.current;
+    if (!request) return;
+    pendingFocusRef.current = null;
+    if (request === "add") {
+      pickerRef.current?.focus();
+      return;
+    }
+    gridRef.current
+      ?.querySelector<HTMLElement>(`[data-photo-key="${CSS.escape(request.key)}"] [data-focus="handle"]`)
+      ?.focus();
+  }, [items]);
 
-  function move(key: string, direction: -1 | 1) {
-    updateItems((current) => {
+  /** The only way the order changes — "Hacer portada" and drag & drop
+   * (mouse, touch and keyboard) both end here, so `items` stays the single client-side source of
+   * the order that `commit` sends to syncPropertyImages (position = index). */
+  const reorder = useCallback(
+    (key: string, toIndex: number) => {
+      updateItems((current) => {
+        const from = current.findIndex((item) => item.key === key);
+        if (from < 0 || toIndex < 0 || toIndex >= current.length || from === toIndex) return current;
+        return arrayMove(current, from, toIndex);
+      });
+    },
+    [updateItems],
+  );
+
+  const makeCover = useCallback(
+    (key: string) => {
+      if (itemsRef.current.findIndex((item) => item.key === key) <= 0) return;
+      pendingFocusRef.current = { key };
+      reorder(key, 0);
+      setAnnouncement("La foto ahora es la portada.");
+    },
+    [reorder],
+  );
+
+  const removeItem = useCallback(
+    (key: string) => {
+      const current = itemsRef.current;
       const index = current.findIndex((item) => item.key === key);
-      const target = index + direction;
-      if (index < 0 || target < 0 || target >= current.length) return current;
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
+      if (index < 0) return;
+      const neighbor = current[index + 1] ?? current[index - 1];
+      pendingFocusRef.current = neighbor ? { key: neighbor.key } : "add";
+
+      const target = current[index];
+      if (target.file) URL.revokeObjectURL(target.previewUrl);
+      updateItems((items) => items.filter((item) => item.key !== key));
+      setAnnouncement(
+        `Foto quitada.${index === 0 && neighbor ? " La siguiente pasa a ser la portada." : ""} Se aplica al guardar.`,
+      );
+    },
+    [updateItems],
+  );
+
+  const sensors = useSensors(
+    // A few px of travel before a mouse drag starts, so a plain click on the
+    // preview never reorders anything.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // Press-and-hold on touch: a normal swipe over the photos keeps
+    // scrolling the page; only a deliberate ~0.2s hold picks one up.
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const positionOf = useCallback((id: UniqueIdentifier) => itemsRef.current.findIndex((item) => item.key === id) + 1, []);
+
+  const announcements = useMemo<Announcements>(
+    () => ({
+      onDragStart: ({ active }) => `Levantaste la foto ${positionOf(active.id)} de ${itemsRef.current.length}.`,
+      onDragOver: ({ over }) =>
+        over
+          ? `Posición ${positionOf(over.id)} de ${itemsRef.current.length}.${positionOf(over.id) === 1 ? " Quedará como portada." : ""}`
+          : "La foto no está sobre ninguna posición.",
+      onDragEnd: ({ active, over }) =>
+        over
+          ? `Foto soltada en la posición ${positionOf(over.id)} de ${itemsRef.current.length}.${positionOf(over.id) === 1 ? " Ahora es la portada." : ""}`
+          : `Foto soltada. Sigue en la posición ${positionOf(active.id)}.`,
+      onDragCancel: ({ active }) => `Movimiento cancelado. La foto sigue en la posición ${positionOf(active.id)}.`,
+    }),
+    [positionOf],
+  );
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveKey(String(event.active.id));
   }
 
-  function setAsCover(key: string) {
-    updateItems((current) => {
-      const index = current.findIndex((item) => item.key === key);
-      if (index <= 0) return current;
-      const next = [...current];
-      const [target] = next.splice(index, 1);
-      next.unshift(target);
-      return next;
-    });
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    setActiveKey(null);
+    if (!over || active.id === over.id) return;
+    reorder(String(active.id), itemsRef.current.findIndex((item) => item.key === over.id));
   }
 
-  function updateAlt(key: string, alt: string) {
-    updateItems((current) => current.map((item) => (item.key === key ? { ...item, alt } : item)));
-  }
+  const activeItem = activeKey ? items.find((item) => item.key === activeKey) : undefined;
 
   /** Uploads every item that still has a `file` and isn't already `done`,
    * with at most `UPLOAD_CONCURRENCY` in flight. A per-file failure marks
@@ -244,99 +373,89 @@ export const PropertyImagesManager = forwardRef<
 
   return (
     <div>
+      {/* Phones: count + button share the first row and the help text gets
+          the full width below; from `sm` the button sits beside both. */}
+      <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 sm:items-start">
+        <p className="text-sm font-medium tabular-nums text-grafito/80">
+          {items.length === 0 ? "Sin fotos" : `${items.length} ${items.length === 1 ? "foto" : "fotos"}`}
+        </p>
+        <p className="col-span-2 row-start-2 font-body text-xs leading-relaxed text-grafito/50 sm:col-span-1">
+          {items.length > 1
+            ? "Arrastrá las fotos para cambiar el orden. La primera es la portada de la propiedad."
+            : "La primera foto es la portada de la propiedad."}
+        </p>
+        <label
+          className={cn(
+            buttonClass(
+              "secondary",
+              "md",
+              "col-start-2 row-start-1 self-center sm:row-span-2 sm:self-start has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-petroleo-claro",
+            ),
+            isBusy ? "pointer-events-none opacity-50" : "cursor-pointer",
+          )}
+        >
+          <IconImagePlus className="h-4 w-4 text-grafito/60" />
+          Agregar fotos
+          <input
+            ref={pickerRef}
+            type="file"
+            multiple
+            disabled={isBusy}
+            accept={ACCEPT_ATTR}
+            onChange={(event) => {
+              handlePick(event.target.files);
+              event.target.value = "";
+            }}
+            className="sr-only"
+          />
+        </label>
+      </div>
+
       {items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {items.map((item, index) => (
-            <div
-              key={item.key}
-              className={cn(
-                "overflow-hidden rounded-xl border bg-plata",
-                item.status === "error" ? "border-terracota/50" : "border-grafito/10",
-              )}
+        <DndContext
+          id={dndId}
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveKey(null)}
+        >
+          <SortableContext items={items.map((item) => item.key)} strategy={rectSortingStrategy}>
+            {/* Column count follows the space each card needs (photo + two
+                text actions): one column on phones, then 2 → 4 only as the
+                editor really widens. */}
+            <ul
+              ref={gridRef}
+              aria-label="Fotos de la propiedad, en orden. La primera es la portada."
+              className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4 sm:gap-5"
             >
-              <div className="relative aspect-[4/3] bg-piedra">
-                {item.previewUrl ? (
-                  <Image
-                    src={item.previewUrl}
-                    alt=""
-                    fill
-                    unoptimized={Boolean(item.file)}
-                    sizes="200px"
-                    className="object-cover"
-                  />
-                ) : null}
-                {index === 0 ? (
-                  <span className="absolute left-2 top-2 rounded-md bg-grafito/85 px-2 py-0.5 font-utility text-[9px] font-medium uppercase tracking-[0.06em] text-blanco-roto">
-                    Portada
-                  </span>
-                ) : null}
-                {item.status === "uploading" ? (
-                  <span className="absolute inset-0 flex items-center justify-center bg-grafito/40">
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-blanco-roto/40 border-t-blanco-roto" />
-                  </span>
-                ) : null}
-              </div>
-              <div className="space-y-2 p-2.5">
-                {item.status === "error" ? (
-                  <p className="text-[11px] leading-snug text-terracota">{item.error ?? "No se pudo subir."}</p>
-                ) : null}
-                <input
-                  value={item.alt}
-                  onChange={(event) => updateAlt(item.key, event.target.value)}
+              {items.map((item, index) => (
+                <PropertyPhotoCard
+                  key={item.key}
+                  item={item}
+                  index={index}
+                  total={items.length}
                   disabled={isBusy}
-                  placeholder="Texto alternativo (SEO)"
-                  className="w-full rounded-md border border-grafito/10 bg-blanco-roto px-2 py-1.5 text-xs text-grafito outline-none focus:border-petroleo disabled:opacity-60"
+                  onMakeCover={makeCover}
+                  onRemove={removeItem}
                 />
-                <div className="flex items-center justify-between gap-1">
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => move(item.key, -1)}
-                      disabled={isBusy || index === 0}
-                      aria-label="Mover antes"
-                      className="rounded-md px-1.5 py-1 text-xs text-grafito/50 transition-colors duration-150 ease-out hover:bg-piedra/50 disabled:opacity-30"
-                    >
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(item.key, 1)}
-                      disabled={isBusy || index === items.length - 1}
-                      aria-label="Mover después"
-                      className="rounded-md px-1.5 py-1 text-xs text-grafito/50 transition-colors duration-150 ease-out hover:bg-piedra/50 disabled:opacity-30"
-                    >
-                      →
-                    </button>
-                    {index !== 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => setAsCover(item.key)}
-                        disabled={isBusy}
-                        className="rounded-md px-1.5 py-1 font-utility text-[9px] uppercase tracking-[0.04em] text-petroleo transition-colors duration-150 ease-out hover:bg-piedra/50 disabled:opacity-30"
-                      >
-                        Hacer portada
-                      </button>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.key)}
-                    disabled={isBusy}
-                    aria-label="Quitar foto"
-                    className="rounded-md px-1.5 py-1 text-xs text-terracota transition-colors duration-150 ease-out hover:bg-terracota/10 disabled:opacity-30"
-                  >
-                    Quitar
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              ))}
+            </ul>
+          </SortableContext>
+          <DragOverlay dropAnimation={reducedMotion ? null : DROP_ANIMATION}>
+            {activeItem ? <PropertyPhotoDragPreview item={activeItem} /> : null}
+          </DragOverlay>
+        </DndContext>
       ) : (
-        <p className="rounded-xl border border-dashed border-grafito/15 px-4 py-8 text-center text-sm text-grafito/50">
+        <p className="mt-5 rounded-xl border border-dashed border-grafito/15 px-4 py-10 text-center text-sm text-grafito/50">
           Todavía no hay fotos cargadas.
         </p>
       )}
+
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
 
       {processing ? (
         <p className="mt-3 flex items-center gap-2 text-xs text-grafito/55">
@@ -353,22 +472,22 @@ export const PropertyImagesManager = forwardRef<
       ) : null}
 
       {hasFailedUploads && !uploadProgress ? (
-        <div className="mt-3 rounded-lg border border-terracota/30 bg-terracota/5 p-3">
-          <p className="text-xs text-terracota">
+        <div role="alert" className="mt-4 rounded-xl bg-terracota/[0.06] p-4 ring-1 ring-inset ring-terracota/20">
+          <p className="text-sm text-terracota">
             Algunas fotos no se pudieron subir. Reintentá o continuá sin ellas para guardar el resto.
           </p>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={retryFailed}
-              className="rounded-md bg-terracota px-3 py-1.5 text-xs font-medium text-blanco-roto transition-colors duration-150 ease-out hover:bg-terracota/90"
+              className={buttonClass("dangerSolid", "sm")}
             >
               Reintentar
             </button>
             <button
               type="button"
               onClick={discardFailed}
-              className="rounded-md border border-grafito/15 px-3 py-1.5 text-xs font-medium text-grafito transition-colors duration-150 ease-out hover:bg-piedra/40"
+              className={buttonClass("secondary", "sm")}
             >
               Continuar sin estas fotos
             </button>
@@ -386,30 +505,9 @@ export const PropertyImagesManager = forwardRef<
         </ul>
       ) : null}
 
-      <label
-        htmlFor={pickerId}
-        className={cn(
-          "mt-4 inline-flex items-center gap-2 rounded-lg border border-grafito/10 px-4 py-2 text-sm font-medium text-grafito transition-colors duration-150 ease-out",
-          isBusy ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-piedra/40",
-        )}
-      >
-        + Agregar fotos
-      </label>
-      <input
-        id={pickerId}
-        type="file"
-        multiple
-        disabled={isBusy}
-        accept={ACCEPT_ATTR}
-        onChange={(event) => {
-          handlePick(event.target.files);
-          event.target.value = "";
-        }}
-        className="sr-only"
-      />
-      <p className="mt-2 font-body text-xs text-grafito/45">
-        JPG, PNG, WEBP, AVIF o HEIC · se optimizan automáticamente a WebP (máx. 1920px de ancho) antes de
-        subirse. La primera foto es la portada.
+      <p className="mt-5 font-body text-xs leading-relaxed text-grafito/45">
+        JPG, PNG, WEBP, AVIF o HEIC, optimizadas automáticamente a WebP (máx. 1920px). Los cambios se aplican
+        al guardar.
       </p>
     </div>
   );

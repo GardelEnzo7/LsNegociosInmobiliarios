@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { buttonClass } from "@/components/admin/ui/button";
 
 export default function AdminError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -8,9 +9,9 @@ export default function AdminError({ error, reset }: { error: Error & { digest?:
   }, [error]);
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-2xl bg-blanco-roto p-10 text-center ring-1 ring-grafito/[0.06]">
+    <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-2xl bg-blanco-roto px-6 py-12 text-center ring-1 ring-grafito/[0.07]">
       <p className="font-utility text-[11px] uppercase tracking-[0.2em] text-terracota">Error</p>
-      <h1 className="mt-3 font-display text-xl text-grafito">No se pudo completar la operación</h1>
+      <h1 className="mt-3 font-display text-[22px] leading-tight text-grafito" style={{ fontWeight: 480 }}>No se pudo completar la operación</h1>
       <p className="mt-2 max-w-sm font-body text-sm leading-relaxed text-grafito/60">
         Hubo un problema al comunicarse con la base de datos. Podés reintentar; si el problema
         sigue, avisá al administrador del sistema.
@@ -18,7 +19,7 @@ export default function AdminError({ error, reset }: { error: Error & { digest?:
       <button
         type="button"
         onClick={() => reset()}
-        className="mt-5 rounded-lg bg-grafito px-5 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark"
+        className={buttonClass("primary", "md", "mt-6")}
       >
         Reintentar
       </button>

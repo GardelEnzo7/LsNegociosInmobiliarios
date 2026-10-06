@@ -5,7 +5,9 @@ import { addPayment, deletePayment, togglePaymentPaid, type PaymentFormState } f
 import { useConfirm } from "@/components/admin/ui/confirm-dialog";
 import { Panel } from "@/components/admin/ui/panel";
 import { EmptyState } from "@/components/admin/ui/empty-state";
-import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { buttonClass } from "@/components/admin/ui/button";
+import { FormField, SelectShell, checkboxClass, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { TableShell, Td, tbodyClass, thClass, theadClass, trClass } from "@/components/admin/ui/table";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +36,9 @@ export function RentalPayments({ contractId, payments }: { contractId: string; p
   const [state, formAction, pending] = useActionState(addPayment, initialState);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Panel title="Registrar pago">
-        <form action={formAction} className="grid gap-3 sm:grid-cols-5 sm:items-end">
+        <form action={formAction} className="grid gap-4 sm:grid-cols-[1fr_1fr_1fr_auto_auto] sm:items-end">
           <input type="hidden" name="contractId" value={contractId} />
           <FormField label="Tipo" htmlFor="paymentType">
             <SelectShell>
@@ -55,21 +57,15 @@ export function RentalPayments({ contractId, payments }: { contractId: string; p
           <FormField label="Monto" htmlFor="amount">
             <input id="amount" name="amount" type="number" min={0} className={inputClass} />
           </FormField>
-          <div className="flex items-center gap-2 pb-2.5 sm:col-span-1">
-            <input id="paid" name="paid" type="checkbox" className="h-4 w-4 rounded border-grafito/15" />
-            <label htmlFor="paid" className="text-sm text-grafito/60">
-              Pagado
-            </label>
-          </div>
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-lg bg-grafito px-4 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60 sm:col-span-1"
-          >
+          <label htmlFor="paid" className="flex h-10 cursor-pointer items-center gap-2.5 text-sm text-grafito/75">
+            <input id="paid" name="paid" type="checkbox" className={checkboxClass} />
+            Pagado
+          </label>
+          <button type="submit" disabled={pending} className={buttonClass("primary")}>
             {pending ? "Guardando…" : "Agregar"}
           </button>
         </form>
-        {state.error ? <p className="mt-2 text-sm text-terracota">{state.error}</p> : null}
+        {state.error ? <p className="mt-3 text-sm text-terracota">{state.error}</p> : null}
       </Panel>
 
       <PaymentsTable contractId={contractId} payments={payments} />
@@ -83,25 +79,25 @@ function PaymentsTable({ contractId, payments }: { contractId: string; payments:
   }
 
   return (
-    <Panel padded={false}>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] text-sm">
-          <thead className="border-b border-grafito/10 bg-piedra/30 text-left text-xs font-medium uppercase tracking-wide text-grafito/50">
-            <tr>
-              <th className="px-4 py-2.5">Tipo</th>
-              <th className="px-4 py-2.5">Período</th>
-              <th className="px-4 py-2.5">Monto</th>
-              <th className="px-4 py-2.5">Estado</th>
-              <th className="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-grafito/[0.06]">
-            {payments.map((payment) => (
-              <PaymentRow key={payment.id} contractId={contractId} payment={payment} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <Panel padded={false} className="overflow-hidden">
+      <TableShell minWidth={520}>
+        <thead className={theadClass}>
+          <tr>
+            <th className={thClass}>Tipo</th>
+            <th className={thClass}>Período</th>
+            <th className={thClass}>Monto</th>
+            <th className={thClass}>Estado</th>
+            <th className={thClass}>
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody className={tbodyClass}>
+          {payments.map((payment) => (
+            <PaymentRow key={payment.id} contractId={contractId} payment={payment} />
+          ))}
+        </tbody>
+      </TableShell>
     </Panel>
   );
 }
@@ -111,36 +107,37 @@ function PaymentRow({ contractId, payment }: { contractId: string; payment: Paym
   const confirm = useConfirm();
 
   return (
-    <tr className={cn("transition-opacity duration-150", isPending && "opacity-50")}>
-      <td className="px-4 py-2.5 text-grafito/70">{TYPE_LABELS[payment.payment_type] ?? payment.payment_type}</td>
-      <td className="px-4 py-2.5 text-grafito/70">{payment.period}</td>
-      <td className="px-4 py-2.5 text-grafito/70">{payment.amount ?? "—"}</td>
-      <td className="px-4 py-2.5">
+    <tr className={cn(trClass, "transition-opacity duration-150", isPending && "opacity-50")}>
+      <Td>{TYPE_LABELS[payment.payment_type] ?? payment.payment_type}</Td>
+      <Td className="tabular-nums">{payment.period}</Td>
+      <Td className="tabular-nums">{payment.amount ?? "—"}</Td>
+      <Td>
         <button
           type="button"
           onClick={() =>
             startTransition(() => togglePaymentPaid(payment.id, contractId, !payment.paid))
           }
+          aria-label={`${payment.paid ? "Pagado" : "Pendiente"}. Marcar como ${payment.paid ? "pendiente" : "pagado"}`}
+          className="rounded-full"
         >
           <StatusBadge
             tier={payment.paid ? "won" : "pending"}
             label={payment.paid ? `Pagado${payment.paid_at ? ` · ${payment.paid_at}` : ""}` : "Pendiente"}
           />
         </button>
-      </td>
-      <td className="px-4 py-2.5 text-right">
+      </Td>
+      <Td className="text-right">
         <button
           type="button"
           onClick={async () => {
             const ok = await confirm({ title: "¿Eliminar este pago?", confirmLabel: "Eliminar", destructive: true });
             if (ok) startTransition(() => deletePayment(payment.id, contractId));
           }}
-          className="text-xs font-medium text-terracota hover:underline"
+          className={buttonClass("danger", "sm", "-mr-2.5")}
         >
           Eliminar
         </button>
-      </td>
+      </Td>
     </tr>
   );
 }
-

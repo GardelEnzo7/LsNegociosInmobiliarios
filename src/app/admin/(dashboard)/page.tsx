@@ -8,6 +8,7 @@ import { ActivityTimeline } from "@/components/admin/activity-timeline";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { Panel } from "@/components/admin/ui/panel";
 import { EmptyState } from "@/components/admin/ui/empty-state";
+import { Stat } from "@/components/admin/ui/stat";
 
 export default async function AdminDashboardPage() {
   const [properties, recentActivity, needsAttention] = await Promise.all([
@@ -29,37 +30,38 @@ export default async function AdminDashboardPage() {
     <div>
       <PageHeader title="Resumen" subtitle="Lo que necesita tu atención hoy." />
 
-      <Panel className="mt-6" padded={false}>
-        <div className="grid grid-cols-3 divide-x divide-grafito/[0.06] sm:grid-cols-6">
+      <Panel className="mt-8 overflow-hidden" padded={false}>
+        <h2 className="sr-only">Inventario de propiedades</h2>
+        <div className="grid grid-cols-3 gap-px bg-grafito/[0.06] sm:grid-cols-6">
           {inventory.map((item) => (
             <Link
               key={item.label}
               href="/admin/propiedades"
-              className="px-4 py-4 text-center transition-colors duration-150 ease-out hover:bg-piedra/20 sm:text-left"
+              className="bg-blanco-roto px-5 py-5 transition-colors duration-150 ease-out hover:bg-plata/70"
             >
-              <p className="font-display text-2xl tabular-nums text-grafito" style={{ fontWeight: 460 }}>
-                {item.value}
-              </p>
-              <p className="mt-0.5 text-[11px] text-grafito/50">{item.label}</p>
+              <Stat value={item.value} label={item.label} />
             </Link>
           ))}
         </div>
       </Panel>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Panel title="Propiedades que requieren atención">
           {needsAttention.length === 0 ? (
-            <EmptyState text="Todas las propiedades publicadas están al día." />
+            <EmptyState className="py-6" text="Todas las propiedades publicadas están al día." />
           ) : (
-            <ul className="space-y-1">
+            <ul className="-mx-2 divide-y divide-grafito/[0.06]">
               {needsAttention.map((property) => (
                 <li key={property.id}>
                   <Link
                     href={`/admin/propiedades/${property.id}`}
-                    className="block rounded-lg bg-bronce/[0.06] px-3 py-2.5 transition-colors duration-150 ease-out hover:bg-bronce/[0.1]"
+                    className="flex items-start gap-3 rounded-lg px-2 py-3 transition-colors duration-150 ease-out hover:bg-plata/70"
                   >
-                    <p className="truncate text-sm font-medium text-grafito">{property.title}</p>
-                    <p className="mt-0.5 text-xs text-bronce">{property.reasons.join(" · ")}</p>
+                    <span aria-hidden="true" className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-bronce" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-grafito">{property.title}</span>
+                      <span className="mt-0.5 block text-xs text-bronce">{property.reasons.join(" · ")}</span>
+                    </span>
                   </Link>
                 </li>
               ))}

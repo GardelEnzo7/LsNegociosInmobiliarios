@@ -9,7 +9,9 @@ import {
 } from "@/app/actions/rentals";
 import { Panel } from "@/components/admin/ui/panel";
 import { EmptyState } from "@/components/admin/ui/empty-state";
-import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { buttonClass } from "@/components/admin/ui/button";
+import { FormField, SelectShell, inputClass, labelClass, selectClass } from "@/components/admin/ui/form-field";
+import { TableShell, Td, tbodyClass, thClass, theadClass, trClass } from "@/components/admin/ui/table";
 import { ADJUSTMENT_FREQUENCY_OPTIONS, ADJUSTMENT_TYPE_LABELS } from "@/lib/admin/constants";
 import { formatPrice } from "@/lib/utils";
 
@@ -49,9 +51,22 @@ export function RentalAdjustments({
   const [formState, formAction, pending] = useActionState(registerAdjustment, adjustmentInitialState);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Panel title="Configuración de ajuste">
-        <form action={settingsAction} className="grid gap-4 sm:grid-cols-3 sm:items-end">
+        <dl className="mb-6 grid grid-cols-2 gap-4 rounded-xl bg-plata px-4 py-3.5 text-sm ring-1 ring-inset ring-grafito/[0.05]">
+          <div>
+            <dt className={labelClass}>Valor actual</dt>
+            <dd className="mt-1 font-medium tabular-nums text-grafito">
+              {formatPrice(contract.rent_amount, contract.rent_currency as "USD" | "ARS")}
+            </dd>
+          </div>
+          <div>
+            <dt className={labelClass}>Próximo ajuste</dt>
+            <dd className="mt-1 font-medium tabular-nums text-grafito">{contract.adjustment_next_date ?? "Sin definir"}</dd>
+          </div>
+        </dl>
+
+        <form action={settingsAction} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <input type="hidden" name="contractId" value={contract.id} />
           <FormField label="Tipo de ajuste" htmlFor="adjustmentType">
             <SelectShell>
@@ -87,32 +102,15 @@ export function RentalAdjustments({
               </select>
             </SelectShell>
           </FormField>
-          <button
-            type="submit"
-            disabled={settingsPending}
-            className="rounded-lg bg-grafito px-4 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60"
-          >
+          <button type="submit" disabled={settingsPending} className={buttonClass("primary")}>
             {settingsPending ? "Guardando…" : "Guardar configuración"}
           </button>
         </form>
-        {settingsState.error ? <p className="mt-2 text-sm text-terracota">{settingsState.error}</p> : null}
-
-        <div className="mt-4 flex flex-wrap gap-4 rounded-lg bg-piedra/30 px-4 py-3 text-sm">
-          <div>
-            <p className="text-xs text-grafito/45">Valor actual</p>
-            <p className="mt-0.5 font-medium text-grafito">
-              {formatPrice(contract.rent_amount, contract.rent_currency as "USD" | "ARS")}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-grafito/45">Próximo ajuste</p>
-            <p className="mt-0.5 font-medium text-grafito">{contract.adjustment_next_date ?? "Sin definir"}</p>
-          </div>
-        </div>
+        {settingsState.error ? <p className="mt-3 text-sm text-terracota">{settingsState.error}</p> : null}
       </Panel>
 
       <Panel title="Registrar ajuste">
-        <form action={formAction} className="grid gap-3 sm:grid-cols-5 sm:items-end">
+        <form action={formAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.4fr_auto] lg:items-end">
           <input type="hidden" name="contractId" value={contract.id} />
           <FormField label="Fecha" htmlFor="effectiveDate">
             <input id="effectiveDate" name="effectiveDate" type="date" required className={inputClass} />
@@ -126,15 +124,11 @@ export function RentalAdjustments({
           <FormField label="Notas" htmlFor="adjNotes">
             <input id="adjNotes" name="notes" className={inputClass} />
           </FormField>
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-lg bg-grafito px-4 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60"
-          >
+          <button type="submit" disabled={pending} className={buttonClass("primary", "md", "sm:col-span-2 lg:col-span-1")}>
             {pending ? "Guardando…" : "Registrar"}
           </button>
         </form>
-        {formState.error ? <p className="mt-2 text-sm text-terracota">{formState.error}</p> : null}
+        {formState.error ? <p className="mt-3 text-sm text-terracota">{formState.error}</p> : null}
       </Panel>
 
       <AdjustmentsTable adjustments={adjustments} currency={contract.rent_currency} />
@@ -148,26 +142,24 @@ function AdjustmentsTable({ adjustments, currency }: { adjustments: Adjustment[]
   }
 
   return (
-    <Panel padded={false}>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead className="border-b border-grafito/10 bg-piedra/30 text-left text-xs font-medium uppercase tracking-wide text-grafito/50">
-            <tr>
-              <th className="px-4 py-2.5">Fecha</th>
-              <th className="px-4 py-2.5">Tipo</th>
-              <th className="px-4 py-2.5">Valor anterior</th>
-              <th className="px-4 py-2.5">%</th>
-              <th className="px-4 py-2.5">Nuevo valor</th>
-              <th className="px-4 py-2.5">Notas</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-grafito/[0.06]">
-            {adjustments.map((adj) => (
-              <AdjustmentRow key={adj.id} adjustment={adj} currency={currency} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <Panel padded={false} className="overflow-hidden">
+      <TableShell>
+        <thead className={theadClass}>
+          <tr>
+            <th className={thClass}>Fecha</th>
+            <th className={thClass}>Tipo</th>
+            <th className={thClass}>Valor anterior</th>
+            <th className={thClass}>%</th>
+            <th className={thClass}>Nuevo valor</th>
+            <th className={thClass}>Notas</th>
+          </tr>
+        </thead>
+        <tbody className={tbodyClass}>
+          {adjustments.map((adj) => (
+            <AdjustmentRow key={adj.id} adjustment={adj} currency={currency} />
+          ))}
+        </tbody>
+      </TableShell>
     </Panel>
   );
 }
@@ -180,21 +172,17 @@ function AdjustmentRow({
   currency: string;
 }) {
   return (
-    <tr>
-      <td className="px-4 py-2.5 text-grafito/70">{adjustment.effective_date}</td>
-      <td className="px-4 py-2.5 text-grafito/70">
+    <tr className={trClass}>
+      <Td className="tabular-nums">{adjustment.effective_date}</Td>
+      <Td>
         {adjustment.adjustment_type
           ? ADJUSTMENT_TYPE_LABELS[adjustment.adjustment_type] ?? adjustment.adjustment_type
           : "—"}
-      </td>
-      <td className="px-4 py-2.5 text-grafito/70">
-        {formatPrice(adjustment.previous_amount, currency as "USD" | "ARS")}
-      </td>
-      <td className="px-4 py-2.5 text-grafito/70">{adjustment.percentage != null ? `${adjustment.percentage}%` : "—"}</td>
-      <td className="px-4 py-2.5 font-medium text-grafito">
-        {formatPrice(adjustment.new_amount, currency as "USD" | "ARS")}
-      </td>
-      <td className="max-w-64 px-4 py-2.5 text-grafito/60">{adjustment.notes || "—"}</td>
+      </Td>
+      <Td className="tabular-nums">{formatPrice(adjustment.previous_amount, currency as "USD" | "ARS")}</Td>
+      <Td className="tabular-nums">{adjustment.percentage != null ? `${adjustment.percentage}%` : "—"}</Td>
+      <Td className="font-medium tabular-nums text-grafito">{formatPrice(adjustment.new_amount, currency as "USD" | "ARS")}</Td>
+      <Td className="max-w-64 text-grafito/60">{adjustment.notes || "—"}</Td>
     </tr>
   );
 }

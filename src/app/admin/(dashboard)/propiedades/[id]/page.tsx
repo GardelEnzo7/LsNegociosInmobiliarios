@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PropertyForm } from "@/components/admin/property-form";
 import { PropertyTabs } from "@/components/admin/property-tabs";
@@ -7,7 +6,10 @@ import { PropertyInternalForm } from "@/components/admin/property-internal-form"
 import { PropertyDocumentsPanel } from "@/components/admin/property-documents-panel";
 import { PropertyListingsPanel } from "@/components/admin/property-listings-panel";
 import { ActivityTimeline } from "@/components/admin/activity-timeline";
+import { Panel } from "@/components/admin/ui/panel";
+import { labelClass } from "@/components/admin/ui/form-field";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { BackLink } from "@/components/admin/ui/page-header";
 import {
   getPropertyById,
   getPropertyInternal,
@@ -43,29 +45,29 @@ export default async function EditPropertyPage({ params }: { params: Params }) {
   const cover = property.property_images?.[0];
 
   return (
-    <div>
-      <Link href="/admin/propiedades" className="text-xs font-medium text-petroleo hover:underline">
-        ← Propiedades
-      </Link>
+    // Same column as /nueva, so creating and editing read as one form.
+    <div className="mx-auto max-w-4xl">
+      <BackLink href="/admin/propiedades" label="Propiedades" />
 
-      <div className="mt-3 flex flex-wrap items-center gap-4 rounded-2xl bg-blanco-roto p-4 ring-1 ring-grafito/[0.06]">
-        <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-piedra">
-          {cover ? <Image src={cover.url} alt="" fill sizes="80px" className="object-cover" /> : null}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-blanco-roto p-4 ring-1 ring-grafito/[0.07] sm:p-5">
+        <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-piedra sm:h-[72px] sm:w-24">
+          {cover ? <Image src={cover.url} alt="" fill sizes="96px" className="object-cover" /> : null}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-[19px] leading-[1.25] text-grafito" style={{ fontWeight: 480 }}>
+            <h1 className="font-display text-[20px] leading-[1.25] text-grafito sm:text-[22px]" style={{ fontWeight: 480 }}>
               {property.title}
             </h1>
+            {property.status === "draft" ? <StatusBadge tier="pending" label="Borrador" /> : null}
             {property.availability !== "disponible" ? (
               <StatusBadge tier={AVAILABILITY_TIERS[property.availability]} label={AVAILABILITY_LABELS[property.availability]} />
             ) : null}
           </div>
-          <p className="mt-0.5 text-sm text-grafito/50">
+          <p className="mt-1 text-sm text-grafito/55">
             {OPERATION_LABELS[property.operation]} · {PROPERTY_TYPE_LABELS[property.property_type]} · {property.neighborhood}
           </p>
         </div>
-        <p className="font-display text-2xl tabular-nums text-grafito" style={{ fontWeight: 460 }}>
+        <p className="w-full font-display text-2xl tabular-nums text-grafito sm:w-auto" style={{ fontWeight: 460 }}>
           {formatPrice(property.price, property.currency as "USD" | "ARS")}
         </p>
       </div>
@@ -85,17 +87,21 @@ export default async function EditPropertyPage({ params }: { params: Params }) {
             ),
             actividad: (
               <div>
-                <div className="mb-4 grid grid-cols-2 gap-4 rounded-2xl bg-blanco-roto p-4 ring-1 ring-grafito/[0.06] text-sm">
-                  <div>
-                    <p className="text-xs font-medium text-grafito/45">Fecha de ingreso</p>
-                    <p className="mt-0.5 text-grafito">{formatDateTime(property.created_at)}</p>
+                <Panel>
+                  <dl className="grid grid-cols-2 gap-4 border-b border-grafito/[0.06] pb-5 text-sm">
+                    <div>
+                      <dt className={labelClass}>Fecha de ingreso</dt>
+                      <dd className="mt-1 text-grafito">{formatDateTime(property.created_at)}</dd>
+                    </div>
+                    <div>
+                      <dt className={labelClass}>Última actualización</dt>
+                      <dd className="mt-1 text-grafito">{formatDateTime(property.updated_at)}</dd>
+                    </div>
+                  </dl>
+                  <div className="pt-5">
+                    <ActivityTimeline events={activity} />
                   </div>
-                  <div>
-                    <p className="text-xs font-medium text-grafito/45">Última actualización</p>
-                    <p className="mt-0.5 text-grafito">{formatDateTime(property.updated_at)}</p>
-                  </div>
-                </div>
-                <ActivityTimeline events={activity} />
+                </Panel>
               </div>
             ),
           }}

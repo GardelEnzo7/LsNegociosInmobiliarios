@@ -3,7 +3,9 @@
 import { useActionState } from "react";
 import { upsertPropertyInternal, type PropertyInternalFormState } from "@/app/actions/property-internal";
 import { Panel } from "@/components/admin/ui/panel";
-import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { FormField, SelectShell, inputClass, selectClass, textareaClass } from "@/components/admin/ui/form-field";
+import { Notice } from "@/components/admin/ui/notice";
+import { buttonClass } from "@/components/admin/ui/button";
 
 type ContactOption = { id: string; full_name: string };
 type AdminOption = { id: string; full_name: string };
@@ -36,13 +38,13 @@ export function PropertyInternalForm({
 
   return (
     <Panel>
-      <div className="rounded-lg bg-bronce/[0.12] px-4 py-3 text-xs text-bronce">
+      <Notice>
         Esta información es privada: nunca se muestra en el sitio público, sin importar el estado de la
         propiedad.
-      </div>
+      </Notice>
 
-      <form action={formAction} className="mt-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      <form action={formAction} className="mt-6 space-y-5">
+        <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <FormField label="Propietario" htmlFor="ownerContactId">
             <SelectShell>
               <select id="ownerContactId" name="ownerContactId" defaultValue={data?.owner_contact_id ?? ""} className={selectClass}>
@@ -100,24 +102,23 @@ export function PropertyInternalForm({
             name="visitInstructions"
             rows={2}
             defaultValue={data?.visit_instructions ?? ""}
-            className={inputClass}
+            className={textareaClass}
           />
         </FormField>
 
         <FormField label="Observaciones internas" htmlFor="internalNotes">
-          <textarea id="internalNotes" name="internalNotes" rows={3} defaultValue={data?.internal_notes ?? ""} className={inputClass} />
+          <textarea id="internalNotes" name="internalNotes" rows={3} defaultValue={data?.internal_notes ?? ""} className={textareaClass} />
         </FormField>
 
-        {state.error ? <p className="text-sm text-terracota">{state.error}</p> : null}
-        {state.success ? <p className="text-sm text-petroleo">Guardado.</p> : null}
-
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-lg bg-grafito px-5 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60"
-        >
-          {pending ? "Guardando…" : "Guardar información interna"}
-        </button>
+        <div className="flex flex-col gap-3 border-t border-grafito/[0.07] pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div role="status" className="text-sm">
+            {state.error ? <p className="text-terracota">{state.error}</p> : null}
+            {state.success ? <p className="text-petroleo">Guardado.</p> : null}
+          </div>
+          <button type="submit" disabled={pending} className={buttonClass("primary")}>
+            {pending ? "Guardando…" : "Guardar información interna"}
+          </button>
+        </div>
       </form>
     </Panel>
   );

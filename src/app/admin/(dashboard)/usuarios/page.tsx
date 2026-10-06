@@ -1,5 +1,6 @@
 import { UsersList } from "@/components/admin/users-list";
 import { PageHeader } from "@/components/admin/ui/page-header";
+import { EmptyState } from "@/components/admin/ui/empty-state";
 import { getAdminProfiles } from "@/lib/data/admin";
 import { getCurrentAdminRole } from "@/lib/supabase/guards";
 
@@ -8,10 +9,9 @@ export default async function AdminUsersPage() {
 
   if (role !== "admin") {
     return (
-      <div className="rounded-xl border border-dashed border-grafito/15 bg-blanco-roto p-10 text-center">
-        <p className="text-sm text-grafito/50">
-          Solo un Administrador puede gestionar los usuarios del panel.
-        </p>
+      <div>
+        <PageHeader title="Usuarios" />
+        <EmptyState className="mt-8" bordered text="Solo un Administrador puede gestionar los usuarios del panel." />
       </div>
     );
   }
@@ -19,10 +19,10 @@ export default async function AdminUsersPage() {
   const profiles = await getAdminProfiles();
 
   return (
-    <div>
+    <div className="max-w-4xl">
       <PageHeader title="Usuarios" subtitle="Equipo con acceso a la gestión del negocio." />
 
-      <div className="mt-6 max-w-3xl">
+      <div className="mt-8">
         <UsersList profiles={profiles} />
       </div>
     </div>

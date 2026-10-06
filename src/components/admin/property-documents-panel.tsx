@@ -11,6 +11,8 @@ import { useConfirm } from "@/components/admin/ui/confirm-dialog";
 import { Panel } from "@/components/admin/ui/panel";
 import { EmptyState } from "@/components/admin/ui/empty-state";
 import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { Notice } from "@/components/admin/ui/notice";
+import { buttonClass } from "@/components/admin/ui/button";
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   escritura: "Escritura",
@@ -48,12 +50,15 @@ export function PropertyDocumentsPanel({
 
   return (
     <Panel>
-      <div className="rounded-lg bg-bronce/[0.12] px-4 py-3 text-xs text-bronce">
+      <Notice>
         Los documentos se guardan en almacenamiento privado. Nunca quedan accesibles por una URL pública
         permanente — se generan enlaces temporales solo para el staff logueado.
-      </div>
+      </Notice>
 
-      <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-grafito/10 p-4">
+      <form
+        action={formAction}
+        className="mt-6 grid gap-4 rounded-xl bg-plata/60 p-4 ring-1 ring-inset ring-grafito/[0.05] sm:grid-cols-[auto_1fr] lg:grid-cols-[auto_minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end"
+      >
         <FormField label="Tipo" htmlFor="docType">
           <SelectShell>
             <select id="docType" name="docType" defaultValue="otro" className={selectClass}>
@@ -72,32 +77,28 @@ export function PropertyDocumentsPanel({
             name="file"
             accept="application/pdf,image/jpeg,image/png,image/webp"
             required
-            className="block text-sm"
+            className="block h-10 w-full text-sm text-grafito/70 file:mr-3 file:h-10 file:cursor-pointer file:rounded-lg file:border file:border-grafito/12 file:bg-blanco-roto file:px-3.5 file:text-sm file:font-medium file:text-grafito hover:file:bg-plata"
           />
         </FormField>
-        <div className="min-w-[160px] flex-1">
+        <div className="sm:col-span-2 lg:col-span-1">
           <FormField label="Notas" htmlFor="notes">
             <input id="notes" name="notes" className={inputClass} />
           </FormField>
         </div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-lg bg-grafito px-4 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className={buttonClass("primary", "md", "sm:col-span-2 lg:col-span-1")}>
           {pending ? "Subiendo…" : "Subir documento"}
         </button>
       </form>
-      {state.error ? <p className="mt-2 text-sm text-terracota">{state.error}</p> : null}
+      {state.error ? <p className="mt-3 text-sm text-terracota">{state.error}</p> : null}
 
       {documents.length === 0 ? (
-        <EmptyState text="Todavía no se cargaron documentos." className="mt-4" />
+        <EmptyState text="Todavía no se cargaron documentos." className="mt-4" bordered />
       ) : (
-        <ul className="mt-4 divide-y divide-grafito/[0.06] rounded-xl border border-grafito/10 bg-blanco-roto">
+        <ul className="mt-5 divide-y divide-grafito/[0.06] border-t border-grafito/[0.06]">
           {documents.map((doc) => (
-            <li key={doc.id} className="flex items-center justify-between gap-3 p-4">
+            <li key={doc.id} className="flex items-center justify-between gap-3 py-3.5">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-grafito/80">
+                <p className="text-sm font-medium text-grafito">
                   {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
                 </p>
                 <p className="truncate text-xs text-grafito/50">
@@ -105,7 +106,7 @@ export function PropertyDocumentsPanel({
                   {doc.uploaded_by_profile ? ` · ${doc.uploaded_by_profile.full_name}` : ""}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="-mr-2.5 flex shrink-0 items-center">
                 <button
                   type="button"
                   disabled={isPending}
@@ -115,7 +116,7 @@ export function PropertyDocumentsPanel({
                       if (url) window.open(url, "_blank", "noopener,noreferrer");
                     })
                   }
-                  className="text-xs font-medium text-petroleo hover:underline"
+                  className={buttonClass("ghost", "sm")}
                 >
                   Ver
                 </button>
@@ -127,7 +128,7 @@ export function PropertyDocumentsPanel({
                       const ok = await confirm({ title: "¿Eliminar este documento?", confirmLabel: "Eliminar", destructive: true });
                       if (ok) startTransition(() => void deletePropertyDocument(doc.id, propertyId, doc.file_path));
                     }}
-                    className="text-xs font-medium text-terracota hover:underline"
+                    className={buttonClass("danger", "sm")}
                   >
                     Eliminar
                   </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { buttonClass } from "@/components/admin/ui/button";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 type ConfirmOptions = {
@@ -59,30 +59,26 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirm-dialog-title"
-            className="relative w-full max-w-sm rounded-2xl bg-blanco-roto p-6 shadow-[0_16px_40px_-12px_rgba(28,33,41,0.35)]"
+            aria-describedby={state.options.description ? "confirm-dialog-description" : undefined}
+            className="relative w-full max-w-sm rounded-2xl bg-blanco-roto p-6 shadow-[0_16px_40px_-12px_rgba(28,33,41,0.35)] animate-[fade-up_180ms_var(--ease-out)]"
           >
             <h2 id="confirm-dialog-title" className="font-display text-[19px] leading-[1.25] text-grafito" style={{ fontWeight: 480 }}>
               {state.options.title}
             </h2>
             {state.options.description ? (
-              <p className="mt-2 text-sm leading-relaxed text-grafito/60">{state.options.description}</p>
+              <p id="confirm-dialog-description" className="mt-2 text-sm leading-relaxed text-grafito/60">
+                {state.options.description}
+              </p>
             ) : null}
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => close(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-grafito/55 transition-colors duration-150 ease-out hover:bg-piedra/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-petroleo-claro"
-              >
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => close(false)} className={buttonClass("secondary")}>
                 {state.options.cancelLabel ?? "Cancelar"}
               </button>
               <button
                 type="button"
                 autoFocus
                 onClick={() => close(true)}
-                className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-medium text-blanco-roto transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-petroleo-claro",
-                  state.options.destructive ? "bg-terracota hover:bg-terracota/90" : "bg-grafito hover:bg-grafito-dark",
-                )}
+                className={buttonClass(state.options.destructive ? "dangerSolid" : "primary")}
               >
                 {state.options.confirmLabel ?? "Confirmar"}
               </button>

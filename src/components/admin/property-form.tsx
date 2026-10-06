@@ -11,7 +11,15 @@ import {
 } from "@/app/actions/properties";
 import { ORIENTATION_LABELS, PROPERTY_TYPE_LABELS } from "@/lib/constants";
 import { Panel } from "@/components/admin/ui/panel";
-import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import {
+  FormField,
+  SelectShell,
+  checkboxClass,
+  inputClass,
+  selectClass,
+  textareaClass,
+} from "@/components/admin/ui/form-field";
+import { buttonClass } from "@/components/admin/ui/button";
 import { PropertyImagesManager, type PropertyImagesManagerHandle } from "@/components/admin/property-images-manager";
 import { PropertyLocationFields } from "@/components/admin/property-location-fields";
 import type { PropertyWithImages } from "@/lib/data/properties";
@@ -99,9 +107,9 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
     cn(base, fieldMessage(key) && "border-terracota focus:border-terracota");
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <Panel title="Datos generales">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <FormField label="Título" htmlFor="title" error={fieldMessage("title")}>
             <input
               id="title"
@@ -138,14 +146,14 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
               rows={4}
               defaultValue={property?.description}
               aria-invalid={Boolean(fieldMessage("description"))}
-              className={fieldInputClass("description")}
+              className={fieldInputClass("description", textareaClass)}
             />
           </FormField>
         </div>
       </Panel>
 
       <Panel title="Operación">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <FormField label="Operación" htmlFor="operation">
             <SelectShell>
               <select id="operation" name="operation" defaultValue={property?.operation ?? "venta"} className={selectClass}>
@@ -205,7 +213,7 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
       </Panel>
 
       <Panel title="Características">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
           <FormField label="M² totales" htmlFor="m2Total">
             <input id="m2Total" name="m2Total" type="number" min={0} defaultValue={property?.m2_total ?? ""} className={inputClass} />
           </FormField>
@@ -257,31 +265,31 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
             </SelectShell>
           </FormField>
         </div>
-        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
-          <label className="flex items-center gap-2 text-sm text-grafito/70">
+        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-t border-grafito/[0.06] pt-5">
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-grafito/75">
             <input
               type="checkbox"
               name="hasGarage"
               defaultChecked={property?.has_garage ?? false}
-              className="h-4 w-4 rounded border-grafito/15 text-petroleo focus:ring-petroleo"
+              className={checkboxClass}
             />
             Cochera
           </label>
-          <label className="flex items-center gap-2 text-sm text-grafito/70">
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-grafito/75">
             <input
               type="checkbox"
               name="creditEligible"
               defaultChecked={property?.credit_eligible ?? false}
-              className="h-4 w-4 rounded border-grafito/15 text-petroleo focus:ring-petroleo"
+              className={checkboxClass}
             />
             Apto crédito
           </label>
-          <label className="flex items-center gap-2 text-sm text-grafito/70">
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-grafito/75">
             <input
               type="checkbox"
               name="professionalUse"
               defaultChecked={property?.professional_use ?? false}
-              className="h-4 w-4 rounded border-grafito/15 text-petroleo focus:ring-petroleo"
+              className={checkboxClass}
             />
             Apto profesional
           </label>
@@ -289,7 +297,7 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
       </Panel>
 
       <Panel title="SEO de la propiedad (opcional)">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <FormField label="Título SEO (máx. 70 caracteres)" htmlFor="metaTitle" error={fieldMessage("metaTitle")}>
             <input
               id="metaTitle"
@@ -312,10 +320,10 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
               maxLength={160}
               defaultValue={property?.meta_description ?? ""}
               aria-invalid={Boolean(fieldMessage("metaDescription"))}
-              className={fieldInputClass("metaDescription")}
+              className={fieldInputClass("metaDescription", textareaClass)}
             />
           </FormField>
-          <p className="font-body text-xs text-grafito/45">
+          <p className="font-body text-xs leading-relaxed text-grafito/50">
             Si se dejan vacíos, se genera automáticamente un título y descripción a partir de los datos de la propiedad.
           </p>
         </div>
@@ -330,7 +338,7 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
       </Panel>
 
       <Panel title="Publicación">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <FormField label="Estado del sitio" htmlFor="status">
             <SelectShell>
               <select id="status" name="status" defaultValue={property?.status ?? "published"} className={selectClass}>
@@ -350,27 +358,30 @@ export function PropertyForm({ property }: { property?: PropertyWithImages }) {
             </SelectShell>
           </FormField>
         </div>
-        <label className="mt-4 flex items-center gap-2 text-sm text-grafito/70">
+        <label className="mt-5 flex cursor-pointer items-center gap-2.5 text-sm text-grafito/75">
           <input
             type="checkbox"
             name="featured"
             defaultChecked={property?.featured ?? false}
-            className="h-4 w-4 rounded border-grafito/15 text-petroleo focus:ring-petroleo"
+            className={checkboxClass}
           />
           Marcar como destacada en la home
         </label>
       </Panel>
 
-      {state.error ? <p className="text-sm text-terracota">{state.error}</p> : null}
-      {finalizeError ? <p className="text-sm text-terracota">{finalizeError}</p> : null}
-
-      <button
-        type="submit"
-        disabled={pending || finalizing}
-        className="rounded-lg bg-grafito px-6 py-3 text-sm font-medium text-blanco-roto transition-[background-color,transform] duration-200 ease-out hover:bg-grafito-dark active:scale-[0.98] disabled:opacity-60"
-      >
-        {pending ? "Guardando…" : finalizing ? "Guardando fotos…" : property ? "Guardar cambios" : "Publicar propiedad"}
-      </button>
+      <div className="flex flex-col gap-3 border-t border-grafito/[0.07] pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <div role="status" className="space-y-1 text-sm text-terracota">
+          {state.error ? <p>{state.error}</p> : null}
+          {finalizeError ? <p>{finalizeError}</p> : null}
+        </div>
+        <button
+          type="submit"
+          disabled={pending || finalizing}
+          className={buttonClass("primary", "md", "h-11 px-6 sm:min-w-44")}
+        >
+          {pending ? "Guardando…" : finalizing ? "Guardando fotos…" : property ? "Guardar cambios" : "Publicar propiedad"}
+        </button>
+      </div>
     </form>
   );
 }

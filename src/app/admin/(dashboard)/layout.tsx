@@ -31,10 +31,14 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
 
   return (
     <ConfirmProvider>
-      <div className="flex min-h-screen bg-plata">
+      {/* Column below lg (mobile top bar above the content), row from lg
+          (sidebar beside it). */}
+      <div className="flex min-h-screen flex-col bg-plata lg:flex-row">
         <Sidebar role={role} profileName={profile?.full_name ?? null} />
-        <MobileNav role={role} />
-        <main className="flex-1 overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>
+        <MobileNav role={role} profileName={profile?.full_name ?? null} />
+        <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </main>
       </div>
     </ConfirmProvider>
   );

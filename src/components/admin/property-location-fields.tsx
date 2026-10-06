@@ -3,6 +3,7 @@
 import { useId, useState, useTransition } from "react";
 import { geocodePropertyAddress } from "@/app/actions/geocode";
 import { FormField, inputClass } from "@/components/admin/ui/form-field";
+import { buttonClass } from "@/components/admin/ui/button";
 import { cn } from "@/lib/utils";
 
 export function PropertyLocationFields({
@@ -57,7 +58,7 @@ export function PropertyLocationFields({
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
       <FormField label="Barrio / zona" htmlFor={neighborhoodId} error={fieldMessages?.neighborhood}>
         <input
           id={neighborhoodId}
@@ -83,16 +84,16 @@ export function PropertyLocationFields({
           type="button"
           onClick={handleSearch}
           disabled={disabled || isPending}
-          className="rounded-lg border border-grafito/10 px-4 py-2 text-sm font-medium text-grafito transition-colors duration-150 ease-out hover:bg-piedra/40 disabled:opacity-50"
+          className={buttonClass("secondary")}
         >
           {isPending ? "Buscando…" : "Buscar ubicación en el mapa"}
         </button>
         {feedback ? (
-          <p className={`mt-2 text-xs ${feedback.tone === "error" ? "text-terracota" : "text-petroleo"}`}>
+          <p role="status" className={cn("mt-2 text-xs leading-relaxed", feedback.tone === "error" ? "text-terracota" : "text-petroleo")}>
             {feedback.text}
           </p>
         ) : (
-          <p className="mt-2 font-body text-xs text-grafito/45">
+          <p className="mt-2 font-body text-xs leading-relaxed text-grafito/50">
             Busca la dirección + barrio en el mapa y completa lat/lng automáticamente. Siempre podés corregirlas a mano.
           </p>
         )}

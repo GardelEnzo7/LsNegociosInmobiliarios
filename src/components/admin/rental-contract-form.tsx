@@ -3,7 +3,16 @@
 import { useActionState, useState } from "react";
 import { createContract, type ContractFormState } from "@/app/actions/rentals";
 import { Panel } from "@/components/admin/ui/panel";
-import { FormField, SelectShell, inputClass, selectClass } from "@/components/admin/ui/form-field";
+import { buttonClass } from "@/components/admin/ui/button";
+import { IconPlus } from "@/components/admin/ui/icons";
+import {
+  FieldGroupLabel,
+  FormField,
+  SelectShell,
+  inputClass,
+  selectClass,
+  textareaClass,
+} from "@/components/admin/ui/form-field";
 import { ADJUSTMENT_FREQUENCY_OPTIONS, ADJUSTMENT_TYPE_LABELS } from "@/lib/admin/constants";
 
 type PropertyOption = { id: string; title: string; neighborhood: string };
@@ -16,12 +25,9 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-lg bg-grafito px-4 py-2.5 text-sm font-medium text-blanco-roto transition-[background-color,transform] duration-200 ease-out hover:bg-grafito-dark active:scale-[0.98]"
-      >
-        + Nueva administración
+      <button type="button" onClick={() => setOpen(true)} className={buttonClass("primary")}>
+        <IconPlus className="h-4 w-4" />
+        Nueva administración
       </button>
     );
   }
@@ -30,12 +36,12 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
     <Panel
       title="Nueva administración"
       action={
-        <button type="button" onClick={() => setOpen(false)} className="text-sm text-grafito/45 hover:text-grafito/70">
+        <button type="button" onClick={() => setOpen(false)} className={buttonClass("ghost", "sm")}>
           Cerrar
         </button>
       }
     >
-      <form action={formAction} className="space-y-5">
+      <form action={formAction} className="space-y-7">
         <FormField label="Propiedad" htmlFor="propertyId">
           <SelectShell>
             <select id="propertyId" name="propertyId" required defaultValue="" className={selectClass}>
@@ -51,10 +57,8 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
           </SelectShell>
         </FormField>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <p className="col-span-full font-utility text-[10px] font-medium uppercase tracking-[0.08em] text-grafito/45">
-            Propietario / cliente
-          </p>
+        <div className="grid gap-x-4 gap-y-5 border-t border-grafito/[0.06] pt-6 sm:grid-cols-3">
+          <FieldGroupLabel>Propietario / cliente</FieldGroupLabel>
           <FormField label="Nombre" htmlFor="ownerName">
             <input id="ownerName" name="ownerName" required className={inputClass} />
           </FormField>
@@ -66,10 +70,8 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
           </FormField>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <p className="col-span-full font-utility text-[10px] font-medium uppercase tracking-[0.08em] text-grafito/45">
-            Inquilino
-          </p>
+        <div className="grid gap-x-4 gap-y-5 border-t border-grafito/[0.06] pt-6 sm:grid-cols-3">
+          <FieldGroupLabel>Inquilino</FieldGroupLabel>
           <FormField label="Nombre" htmlFor="tenantName">
             <input id="tenantName" name="tenantName" required className={inputClass} />
           </FormField>
@@ -81,10 +83,8 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
           </FormField>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <p className="col-span-full font-utility text-[10px] font-medium uppercase tracking-[0.08em] text-grafito/45">
-            Contrato
-          </p>
+        <div className="grid gap-x-4 gap-y-5 border-t border-grafito/[0.06] pt-6 sm:grid-cols-2">
+          <FieldGroupLabel>Contrato</FieldGroupLabel>
           <FormField label="Fecha de inicio" htmlFor="startDate">
             <input id="startDate" name="startDate" type="date" required className={inputClass} />
           </FormField>
@@ -107,10 +107,8 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
           </FormField>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <p className="col-span-full font-utility text-[10px] font-medium uppercase tracking-[0.08em] text-grafito/45">
-            Ajuste de alquiler (opcional)
-          </p>
+        <div className="grid gap-x-4 gap-y-5 border-t border-grafito/[0.06] pt-6 sm:grid-cols-2">
+          <FieldGroupLabel>Ajuste de alquiler (opcional)</FieldGroupLabel>
           <FormField label="Tipo de ajuste" htmlFor="adjustmentType">
             <SelectShell>
               <select id="adjustmentType" name="adjustmentType" defaultValue="" className={selectClass}>
@@ -137,19 +135,20 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
           </FormField>
         </div>
 
-        <FormField label="Notas" htmlFor="notes">
-          <textarea id="notes" name="notes" rows={2} className={inputClass} />
-        </FormField>
+        <div className="border-t border-grafito/[0.06] pt-6">
+          <FormField label="Notas" htmlFor="notes">
+            <textarea id="notes" name="notes" rows={2} className={textareaClass} />
+          </FormField>
+        </div>
 
-        {state.error ? <p className="text-sm text-terracota">{state.error}</p> : null}
-
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-lg bg-grafito px-5 py-2.5 text-sm font-medium text-blanco-roto transition-colors duration-200 ease-out hover:bg-grafito-dark disabled:opacity-60"
-        >
-          {pending ? "Guardando…" : "Crear administración"}
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div role="status" className="text-sm text-terracota">
+            {state.error ? <p>{state.error}</p> : null}
+          </div>
+          <button type="submit" disabled={pending} className={buttonClass("primary")}>
+            {pending ? "Guardando…" : "Crear administración"}
+          </button>
+        </div>
       </form>
     </Panel>
   );
