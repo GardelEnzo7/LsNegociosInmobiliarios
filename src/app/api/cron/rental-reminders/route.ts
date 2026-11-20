@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import { ADJUSTMENT_TYPE_LABELS } from "@/lib/admin/constants";
@@ -30,9 +31,16 @@ import { formatPrice } from "@/lib/utils";
 const SELECT =
   "id, adjustment_next_date, adjustment_type, end_date, rent_amount, rent_currency, properties(title), tenant:contacts!rental_contracts_tenant_id_fkey(full_name)";
 
+/** Constant-time check of the Authorization header (hashing first makes the
+ * buffers equal-length, as timingSafeEqual requires). */
+function isAuthorized(header: string | null, secret: string) {
+  const digest = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(digest(header ?? ""), digest(`Bearer ${secret}`));
+}
+
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || !isAuthorized(request.headers.get("authorization"), cronSecret)) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
 
