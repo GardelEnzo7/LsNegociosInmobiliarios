@@ -46,3 +46,29 @@ export function slugify(input: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
+
+// Spanish connectors that stay lowercase inside a place name
+// ("Parque de la Independencia"), except as the first word.
+const NAME_CONNECTORS = new Set(["de", "del", "la", "las", "los", "el", "y", "e"]);
+
+/** Canonical display form for a neighborhood typed free-hand in the admin —
+ * "CENTRO", "centro" and " Centro " all become "Centro", "LAS DELICIAS"
+ * becomes "Las Delicias". Display-only: the stored value is untouched. */
+export function formatNeighborhood(name: string): string {
+  return name
+    .trim()
+    .toLocaleLowerCase("es-AR")
+    .split(/\s+/)
+    .map((word, index) =>
+      index > 0 && NAME_CONNECTORS.has(word)
+        ? word
+        : word.charAt(0).toLocaleUpperCase("es-AR") + word.slice(1),
+    )
+    .join(" ");
+}
+
+/** Escapes the LIKE/ILIKE wildcards (`%`, `_`) and the escape char itself so
+ * a user-supplied value can be used for an exact, case-insensitive match. */
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}

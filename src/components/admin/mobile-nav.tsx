@@ -6,7 +6,15 @@ import { AdminNav, SidebarFooter } from "@/components/admin/sidebar";
 import { IconClose, IconMenu } from "@/components/admin/ui/icons";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
-export function MobileNav({ role, profileName }: { role?: string | null; profileName?: string | null }) {
+export function MobileNav({
+  role,
+  profileName,
+  newMessages = 0,
+}: {
+  role?: string | null;
+  profileName?: string | null;
+  newMessages?: number;
+}) {
   const [open, setOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   useFocusTrap(drawerRef, open);
@@ -39,11 +47,14 @@ export function MobileNav({ role, profileName }: { role?: string | null; profile
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Abrir menú"
+          aria-label={newMessages > 0 ? `Abrir menú (${newMessages} consultas sin leer)` : "Abrir menú"}
           aria-expanded={open}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-blanco-roto/80 transition-colors duration-150 ease-out hover:bg-blanco-roto/10"
+          className="relative flex h-11 w-11 items-center justify-center rounded-lg text-blanco-roto/80 transition-colors duration-150 ease-out hover:bg-blanco-roto/10"
         >
           <IconMenu className="h-5 w-5" />
+          {newMessages > 0 ? (
+            <span aria-hidden="true" className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-petroleo-claro ring-2 ring-grafito-dark" />
+          ) : null}
         </button>
       </div>
 
@@ -74,7 +85,7 @@ export function MobileNav({ role, profileName }: { role?: string | null; profile
               </button>
             </div>
             <div className="flex min-h-0 flex-1 flex-col pt-4">
-              <AdminNav role={role} size="lg" onNavigate={() => setOpen(false)} />
+              <AdminNav role={role} size="lg" newMessages={newMessages} onNavigate={() => setOpen(false)} />
             </div>
             <SidebarFooter role={role} profileName={profileName} size="lg" />
           </div>

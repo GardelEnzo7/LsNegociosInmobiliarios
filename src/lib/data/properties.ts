@@ -1,9 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
+import { escapeLikePattern, formatNeighborhood } from "@/lib/utils";
 
 export type Property = Tables<"properties">;
 export type PropertyImage = Tables<"property_images">;
-export type PropertyWithImages = Property & { property_images: PropertyImage[] };
+export type PropertyWithImages = Property & {
+  property_images: PropertyImage[];
+  /** Published within the last NEW_LISTING_DAYS — drives the "Nueva" tag.
+   * Computed here (data layer) rather than in a component so render stays
+   * pure and server/client markup can't disagree around midnight. */
+  isNew?: boolean;
+};
+
+const NEW_LISTING_DAYS = 30;
 
 export type PropertyFilters = {
   operation?: string;
@@ -33,7 +42,7 @@ export async function getFeaturedProperties(): Promise<PropertyWithImages[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw new PropertyFetchError("No se pudieron cargar las propiedades destacadas.");
-  return (data ?? []).map(sortImages);
+  return markRecent((data ?? []).map(sortImages));
 }
 
 export async function getProperties(filters: PropertyFilters = {}): Promise<PropertyWithImages[]> {
@@ -45,7 +54,12 @@ export async function getProperties(filters: PropertyFilters = {}): Promise<Prop
 
   if (filters.operation) query = query.eq("operation", filters.operation);
   if (filters.propertyType) query = query.eq("property_type", filters.propertyType);
-  if (filters.neighborhood) query = query.eq("neighborhood", filters.neighborhood);
+  // Case-insensitive exact match: the same barrio is stored as "centro" on
+  // some rows and "CENTRO" on others, and the dropdown offers one merged
+  // option for both (see getNeighborhoods).
+  if (filters.neighborhood) {
+    query = query.ilike("neighborhood", escapeLikePattern(filters.neighborhood.trim()));
+  }
   if (filters.currency) query = query.eq("currency", filters.currency);
   if (filters.priceMin != null) query = query.gte("price", filters.priceMin);
   if (filters.priceMax != null) query = query.lte("price", filters.priceMax);
@@ -61,7 +75,7 @@ export async function getProperties(filters: PropertyFilters = {}): Promise<Prop
 
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new PropertyFetchError("No se pudieron cargar las propiedades.");
-  return (data ?? []).map(sortImages);
+  return markRecent((data ?? []).map(sortImages));
 }
 
 export async function getPropertyBySlug(slug: string): Promise<PropertyWithImages | null> {
@@ -85,11 +99,11 @@ export async function getSimilarProperties(property: Property): Promise<Property
     .from("properties")
     .select("*, property_images(*)")
     .eq("status", "published")
-    .eq("neighborhood", property.neighborhood)
+    .ilike("neighborhood", escapeLikePattern(property.neighborhood.trim()))
     .neq("id", property.id)
     .limit(4);
 
-  return (data ?? []).map(sortImages);
+  return markRecent((data ?? []).map(sortImages));
 }
 
 export async function getClosedProperties(limit = 3): Promise<PropertyWithImages[]> {
@@ -160,7 +174,18 @@ export async function getNeighborhoods(): Promise<string[]> {
     .select("neighborhood")
     .eq("status", "published");
 
-  return Array.from(new Set((data ?? []).map((row) => row.neighborhood))).sort();
+  // Merge spelling variants ("centro" / "CENTRO") into one canonical label.
+  const labels = new Set((data ?? []).map((row) => formatNeighborhood(row.neighborhood)).filter(Boolean));
+  return Array.from(labels).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+
+function markRecent(properties: PropertyWithImages[]): PropertyWithImages[] {
+  const cutoff = Date.now() - NEW_LISTING_DAYS * 24 * 60 * 60 * 1000;
+  return properties.map((property) => ({
+    ...property,
+    isNew: new Date(property.created_at).getTime() >= cutoff,
+  }));
 }
 
 /** `property_images` order is not guaranteed by Postgres/PostgREST — `position`

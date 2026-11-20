@@ -79,9 +79,10 @@ export async function submitContactMessage(
 
   const { name, contact, message, propertyId, asunto } = parsed.data;
 
+  const supabase = await createClient();
+
   let property: { title: string; slug: string } | null = null;
   if (propertyId) {
-    const supabase = await createClient();
     const { data } = await supabase
       .from("properties")
       .select("title, slug")
@@ -90,9 +91,28 @@ export async function submitContactMessage(
     property = data ?? null;
   }
 
+  // Two independent channels: the admin "Consultas" inbox (migration 0033)
+  // and the notification email. The visitor gets "success" if at least one
+  // of them worked, so a Resend outage no longer loses the message (and if
+  // the inbox table isn't there yet, the email alone still works as before).
+  const { error: saveError } = await supabase.rpc("submit_site_message", {
+    p_name: name,
+    p_contact: contact,
+    p_message: message,
+    p_subject: asunto || null,
+    p_property_id: propertyId || null,
+  });
+  if (saveError) console.error("[contact] could not store message", saveError.message);
+
+  let emailSent = true;
   try {
     await sendContactNotificationEmail({ name, contact, message, asunto, property });
-  } catch {
+  } catch (emailError) {
+    emailSent = false;
+    console.error("[contact] notification email failed", emailError);
+  }
+
+  if (saveError && !emailSent) {
     return { status: "error" };
   }
 

@@ -715,6 +715,47 @@ export type Database = {
         }
         Relationships: []
       }
+      site_messages: {
+        Row: {
+          contact: string
+          created_at: string
+          id: string
+          message: string
+          name: string
+          property_id: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          contact: string
+          created_at?: string
+          id?: string
+          message: string
+          name: string
+          property_id?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          contact?: string
+          created_at?: string
+          id?: string
+          message?: string
+          name?: string
+          property_id?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_messages_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           contact_email: string | null
@@ -804,6 +845,16 @@ export type Database = {
           p_adjustment_frequency_months: number | null
         }
         Returns: undefined
+      }
+      submit_site_message: {
+        Args: {
+          p_name: string
+          p_contact: string
+          p_message: string
+          p_subject: string | null
+          p_property_id: string | null
+        }
+        Returns: string
       }
     }
     Enums: {

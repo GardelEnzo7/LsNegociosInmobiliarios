@@ -1,21 +1,90 @@
 import Link from "next/link";
 import {
+  getAdminProfileForCurrentUser,
+  getCollections,
+  getExpiringContracts,
+  getNewMessagesCount,
   getPropertyStatusCounts,
   getRecentActivity,
   getPropertiesNeedingAttention,
+  getUpcomingAdjustments,
 } from "@/lib/data/admin";
+import { ADJUSTMENT_TYPE_LABELS } from "@/lib/admin/constants";
+import {
+  DASHBOARD_WINDOW_DAYS,
+  EXPIRY_WINDOW_DAYS,
+  currentPeriod,
+  daysUntil,
+  describeDaysUntil,
+  formatDateAR,
+  formatPeriod,
+  todayInArgentina,
+} from "@/lib/rental-reminders";
+import { cn, formatPrice } from "@/lib/utils";
 import { ActivityTimeline } from "@/components/admin/activity-timeline";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { Panel } from "@/components/admin/ui/panel";
 import { EmptyState } from "@/components/admin/ui/empty-state";
 import { Stat } from "@/components/admin/ui/stat";
+import { IconBell, IconCalculator, IconClock, IconMail } from "@/components/site/icons";
+
+const longDate = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "America/Argentina/Buenos_Aires",
+});
 
 export default async function AdminDashboardPage() {
-  const [properties, recentActivity, needsAttention] = await Promise.all([
-    getPropertyStatusCounts(),
-    getRecentActivity(6),
-    getPropertiesNeedingAttention(5),
-  ]);
+  const period = currentPeriod();
+  const [properties, recentActivity, needsAttention, upcomingAdjustments, expiring, collections, newMessages, profile] =
+    await Promise.all([
+      getPropertyStatusCounts(),
+      getRecentActivity(6),
+      getPropertiesNeedingAttention(5),
+      getUpcomingAdjustments(DASHBOARD_WINDOW_DAYS),
+      getExpiringContracts(EXPIRY_WINDOW_DAYS),
+      getCollections(period),
+      getNewMessagesCount(),
+      getAdminProfileForCurrentUser(),
+    ]);
+  const today = todayInArgentina();
+
+  const unpaid = collections.rows.filter((r) => !r.rent?.paid);
+  const pendingCount = unpaid.length + collections.debts.length;
+  const firstName = profile?.full_name?.split(" ")[0];
+  const dateLabel = longDate.format(new Date());
+
+  const todo = [
+    {
+      href: "/admin/consultas",
+      icon: IconMail,
+      count: newMessages,
+      label: newMessages === 1 ? "consulta sin responder" : "consultas sin responder",
+      done: "Consultas al día",
+    },
+    {
+      href: "/admin/cobros",
+      icon: IconCalculator,
+      count: pendingCount,
+      label: pendingCount === 1 ? `cobro pendiente (${formatPeriod(period).toLowerCase()} y anteriores)` : `cobros pendientes (${formatPeriod(period).toLowerCase()} y anteriores)`,
+      done: `Cobros de ${formatPeriod(period).toLowerCase()} al día`,
+    },
+    {
+      href: "#ajustes",
+      icon: IconBell,
+      count: upcomingAdjustments.length,
+      label: upcomingAdjustments.length === 1 ? "ajuste de alquiler próximo" : "ajustes de alquiler próximos",
+      done: "Sin ajustes próximos",
+    },
+    {
+      href: "#vencimientos",
+      icon: IconClock,
+      count: expiring.length,
+      label: expiring.length === 1 ? "contrato por vencer" : "contratos por vencer",
+      done: "Ningún contrato por vencer",
+    },
+  ];
 
   const inventory = [
     { label: "Total", value: properties.total },
@@ -28,9 +97,108 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <PageHeader title="Resumen" subtitle="Lo que necesita tu atención hoy." />
+      <PageHeader
+        title={firstName ? `Hola, ${firstName}` : "Resumen"}
+        subtitle={`${dateLabel.charAt(0).toUpperCase()}${dateLabel.slice(1)}. Esto es lo que tenés pendiente.`}
+      />
 
-      <Panel className="mt-8 overflow-hidden" padded={false}>
+      <section aria-label="Pendientes" className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {todo.map((item) => {
+          const Icon = item.icon;
+          const active = item.count > 0;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "group flex items-start gap-4 rounded-2xl p-5 ring-1 transition-[box-shadow,background-color] duration-150 ease-out hover:shadow-[0_8px_24px_-14px_rgba(28,33,41,0.3)]",
+                active ? "bg-blanco-roto ring-bronce/30" : "bg-blanco-roto/60 ring-grafito/[0.07]",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                  active ? "bg-bronce/[0.12] text-bronce" : "bg-petroleo/[0.08] text-petroleo/70",
+                )}
+              >
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                {active ? (
+                  <>
+                    <span className="block font-display text-[26px] leading-none tabular-nums text-grafito" style={{ fontWeight: 460 }}>
+                      {item.count}
+                    </span>
+                    <span className="mt-1.5 block text-sm leading-snug text-grafito/65">{item.label}</span>
+                  </>
+                ) : (
+                  <span className="block pt-2.5 text-sm text-grafito/55">{item.done}</span>
+                )}
+              </span>
+            </Link>
+          );
+        })}
+      </section>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <Panel
+          title={<span id="ajustes">Próximos ajustes de alquiler</span>}
+          description={`Contratos que ajustan en los próximos ${DASHBOARD_WINDOW_DAYS} días.`}
+        >
+          {upcomingAdjustments.length === 0 ? (
+            <EmptyState className="py-6" text="No hay ajustes próximos." />
+          ) : (
+            <ul className="-mx-2 divide-y divide-grafito/[0.06]">
+              {upcomingAdjustments.map((contract) => {
+                const days = daysUntil(contract.adjustment_next_date!, today);
+                return (
+                  <DueRow
+                    key={contract.id}
+                    href={`/admin/administraciones/${contract.id}`}
+                    title={contract.properties?.title ?? "Propiedad eliminada"}
+                    detail={[
+                      contract.tenant?.full_name,
+                      formatPrice(contract.rent_amount, contract.rent_currency as "USD" | "ARS"),
+                      contract.adjustment_type ? ADJUSTMENT_TYPE_LABELS[contract.adjustment_type] : null,
+                    ]}
+                    when={describeDaysUntil(days)}
+                    date={formatDateAR(contract.adjustment_next_date!)}
+                    urgent={days <= 0}
+                  />
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel
+          title={<span id="vencimientos">Contratos por vencer</span>}
+          description={`Terminan en los próximos ${EXPIRY_WINDOW_DAYS} días: hora de renovar o buscar inquilino.`}
+        >
+          {expiring.length === 0 ? (
+            <EmptyState className="py-6" text="Ningún contrato vence pronto." />
+          ) : (
+            <ul className="-mx-2 divide-y divide-grafito/[0.06]">
+              {expiring.map((contract) => {
+                const days = daysUntil(contract.end_date!, today);
+                return (
+                  <DueRow
+                    key={contract.id}
+                    href={`/admin/administraciones/${contract.id}`}
+                    title={contract.properties?.title ?? "Propiedad eliminada"}
+                    detail={[contract.tenant?.full_name, formatPrice(contract.rent_amount, contract.rent_currency as "USD" | "ARS")]}
+                    when={days < 0 ? `Venció hace ${Math.abs(days)} días` : describeDaysUntil(days)}
+                    date={formatDateAR(contract.end_date!)}
+                    urgent={days <= 30}
+                  />
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      </div>
+
+      <Panel className="mt-5 overflow-hidden" padded={false}>
         <h2 className="sr-only">Inventario de propiedades</h2>
         <div className="grid grid-cols-3 gap-px bg-grafito/[0.06] sm:grid-cols-6">
           {inventory.map((item) => (
@@ -74,5 +242,45 @@ export default async function AdminDashboardPage() {
         </Panel>
       </div>
     </div>
+  );
+}
+
+function DueRow({
+  href,
+  title,
+  detail,
+  when,
+  date,
+  urgent,
+}: {
+  href: string;
+  title: string;
+  detail: (string | null | undefined)[];
+  when: string;
+  date: string;
+  urgent: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="flex items-start justify-between gap-4 rounded-lg px-2 py-3 transition-colors duration-150 ease-out hover:bg-plata/70"
+      >
+        <span className="flex min-w-0 items-start gap-3">
+          <span
+            aria-hidden="true"
+            className={cn("mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full", urgent ? "bg-terracota" : "bg-bronce")}
+          />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-grafito">{title}</span>
+            <span className="mt-0.5 block truncate text-xs text-grafito/55">{detail.filter(Boolean).join(" · ")}</span>
+          </span>
+        </span>
+        <span className="shrink-0 text-right">
+          <span className={cn("block text-sm font-medium", urgent ? "text-terracota" : "text-bronce")}>{when}</span>
+          <span className="mt-0.5 block text-xs tabular-nums text-grafito/50">{date}</span>
+        </span>
+      </Link>
+    </li>
   );
 }

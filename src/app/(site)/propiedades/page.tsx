@@ -5,6 +5,7 @@ import { PropertyCard } from "@/components/site/property-card";
 import { Reveal } from "@/components/site/reveal";
 import { getNeighborhoods, getProperties, getPriceRangesByCurrency } from "@/lib/data/properties";
 import { pageOpenGraph } from "@/lib/constants";
+import { formatNeighborhood } from "@/lib/utils";
 
 const DESCRIPTION =
   "Explorá casas, departamentos, PH, terrenos, locales y oficinas en venta y alquiler en Rosario.";
@@ -43,7 +44,7 @@ export default async function PropertiesPage({ searchParams }: { searchParams: S
   const filters = {
     operation: params.operacion || undefined,
     propertyType: params.tipo || undefined,
-    neighborhood: params.zona || undefined,
+    neighborhood: params.zona ? formatNeighborhood(params.zona) : undefined,
     query: params.q || undefined,
     currency: hasPriceFilter ? params.moneda : undefined,
     priceMin: hasPriceFilter ? parseOptionalPrice(params.precioMin) : undefined,

@@ -199,7 +199,10 @@ export function PriceRangeFilter({
 
       <div
         className={cn(
-          "absolute left-0 top-full z-30 mt-2 w-[min(22rem,90vw)] origin-top rounded-xl bg-blanco-roto p-4 shadow-[0_16px_40px_-12px_rgba(28,33,41,0.35)] ring-1 ring-piedra transition-[opacity,transform] duration-150 ease-out",
+          "absolute top-full z-30 mt-2 w-[min(22rem,90vw)] rounded-xl bg-blanco-roto p-4 shadow-[0_16px_40px_-12px_rgba(28,33,41,0.35)] ring-1 ring-piedra transition-[opacity,transform] duration-150 ease-out",
+          // In the listing bar the price field sits on the right edge, so the
+          // panel opens leftwards to avoid horizontal page scroll.
+          isHero ? "left-0 origin-top-left" : "right-0 origin-top-right",
           open ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0",
         )}
       >

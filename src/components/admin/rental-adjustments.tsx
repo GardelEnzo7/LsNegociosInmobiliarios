@@ -14,6 +14,7 @@ import { FormField, SelectShell, inputClass, labelClass, selectClass } from "@/c
 import { TableShell, Td, tbodyClass, thClass, theadClass, trClass } from "@/components/admin/ui/table";
 import { ADJUSTMENT_FREQUENCY_OPTIONS, ADJUSTMENT_TYPE_LABELS } from "@/lib/admin/constants";
 import { formatPrice } from "@/lib/utils";
+import { formatDateAR } from "@/lib/rental-reminders";
 
 type Adjustment = {
   id: string;
@@ -62,7 +63,7 @@ export function RentalAdjustments({
           </div>
           <div>
             <dt className={labelClass}>Próximo ajuste</dt>
-            <dd className="mt-1 font-medium tabular-nums text-grafito">{contract.adjustment_next_date ?? "Sin definir"}</dd>
+            <dd className="mt-1 font-medium tabular-nums text-grafito">{contract.adjustment_next_date ? formatDateAR(contract.adjustment_next_date) : "Sin definir"}</dd>
           </div>
         </dl>
 
@@ -173,7 +174,7 @@ function AdjustmentRow({
 }) {
   return (
     <tr className={trClass}>
-      <Td className="tabular-nums">{adjustment.effective_date}</Td>
+      <Td className="whitespace-nowrap tabular-nums">{formatDateAR(adjustment.effective_date)}</Td>
       <Td>
         {adjustment.adjustment_type
           ? ADJUSTMENT_TYPE_LABELS[adjustment.adjustment_type] ?? adjustment.adjustment_type

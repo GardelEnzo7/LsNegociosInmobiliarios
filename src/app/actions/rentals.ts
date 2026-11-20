@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireStaff } from "@/lib/supabase/guards";
+import { logActivity } from "@/lib/admin/activity";
+import { PROPERTY_TYPE_LABELS } from "@/lib/constants";
+import { NEW_PROPERTY_OPTION } from "@/lib/admin/constants";
+import { formatNeighborhood, slugify } from "@/lib/utils";
+import { PERIOD_PATTERN, todayInArgentina } from "@/lib/rental-reminders";
 
 /** zod's `.optional().or(z.nan())` fields come through as `number | undefined`,
  * with "not provided" arriving as NaN — this collapses both to `null` for
@@ -28,7 +33,9 @@ const adjustmentFrequencySchema = z.coerce
   .or(z.nan());
 
 const contractSchema = z.object({
-  propertyId: z.string().uuid("Elegí una propiedad."),
+  propertyId: z.union([z.string().uuid("Elegí una propiedad."), z.literal(NEW_PROPERTY_OPTION)], {
+    message: "Elegí una propiedad.",
+  }),
   ownerName: z.string().trim().min(2, "Ingresá el nombre del propietario.").max(200),
   ownerPhone: z.string().trim().max(100).optional(),
   ownerEmail: optionalEmailSchema,
@@ -59,6 +66,17 @@ const contractSchema = z.object({
 });
 
 export type ContractFormState = { error?: string };
+
+// Quick property created from "Nueva administración": only what's needed to
+// identify it. Always a draft (never on the public site); the rest of the
+// listing can be completed later from Propiedades.
+const newPropertySchema = z.object({
+  title: z.string().trim().min(3, "Ingresá el título o la dirección de la propiedad nueva.").max(200),
+  neighborhood: z.string().trim().min(2, "Ingresá el barrio de la propiedad nueva.").max(100),
+  propertyType: z.enum(Object.keys(PROPERTY_TYPE_LABELS) as [string, ...string[]], {
+    message: "Elegí el tipo de la propiedad nueva.",
+  }),
+});
 
 export async function createContract(
   _prevState: ContractFormState,
@@ -95,6 +113,43 @@ export async function createContract(
   const data = parsed.data;
   const supabase = await createClient();
 
+  let propertyId = data.propertyId;
+  let createdPropertyId: string | null = null;
+  if (propertyId === NEW_PROPERTY_OPTION) {
+    const newProperty = newPropertySchema.safeParse({
+      title: formData.get("newPropertyTitle"),
+      neighborhood: formData.get("newPropertyNeighborhood"),
+      propertyType: formData.get("newPropertyType"),
+    });
+    if (!newProperty.success) {
+      return { error: newProperty.error.issues[0]?.message ?? "Revisá los datos de la propiedad nueva." };
+    }
+
+    // Random suffix: the slug must be unique and a draft's slug isn't
+    // public yet — it can be edited when the listing is completed.
+    const slug = `${slugify(newProperty.data.title) || "propiedad"}-${crypto.randomUUID().slice(0, 6)}`;
+    const { data: property, error: propertyError } = await supabase
+      .from("properties")
+      .insert({
+        title: newProperty.data.title,
+        neighborhood: formatNeighborhood(newProperty.data.neighborhood),
+        property_type: newProperty.data.propertyType,
+        operation: "alquiler",
+        price: data.rentAmount,
+        currency: data.rentCurrency,
+        slug,
+        status: "draft",
+      })
+      .select("id")
+      .single();
+
+    if (propertyError || !property) {
+      return { error: "No se pudo crear la propiedad nueva." };
+    }
+    propertyId = property.id;
+    createdPropertyId = property.id;
+  }
+
   // Atomic: owner contact + role, tenant contact + role, and the contract
   // itself all happen inside one Postgres transaction (migration 0029). A
   // failure on the contract insert used to leave two orphaned contacts
@@ -105,7 +160,7 @@ export async function createContract(
   // add_months_clamped, so the database — not a client — is the only
   // source of truth for that date.
   const { error } = await supabase.rpc("create_rental_administration", {
-    p_property_id: data.propertyId,
+    p_property_id: propertyId,
     p_owner_name: data.ownerName,
     p_owner_phone: data.ownerPhone || null,
     p_owner_email: data.ownerEmail || null,
@@ -123,10 +178,28 @@ export async function createContract(
   });
 
   if (error) {
+    // Don't leave a stray draft behind if the contract itself failed.
+    if (createdPropertyId) await supabase.from("properties").delete().eq("id", createdPropertyId);
     return { error: "No se pudo crear la administración." };
   }
 
+  if (createdPropertyId) {
+    await logActivity(
+      {
+        entityType: "property",
+        entityId: createdPropertyId,
+        eventType: "property_created",
+        description: `Se creó la propiedad "${String(formData.get("newPropertyTitle")).trim()}" (borrador) desde Administraciones`,
+      },
+      supabase,
+    );
+    revalidatePath("/admin/propiedades");
+  }
+
   revalidatePath("/admin/administraciones");
+  revalidatePath("/admin/contactos");
+  revalidatePath("/admin/cobros");
+  revalidatePath("/admin");
   redirect("/admin/administraciones");
 }
 
@@ -139,6 +212,8 @@ export async function updateContractStatus(id: string, status: string) {
   if (error) throw new Error("No se pudo actualizar el estado del contrato.");
   revalidatePath("/admin/administraciones");
   revalidatePath(`/admin/administraciones/${id}`);
+  revalidatePath("/admin/cobros");
+  revalidatePath("/admin");
 }
 
 export async function deleteContract(id: string) {
@@ -155,7 +230,7 @@ export async function deleteContract(id: string) {
 const paymentSchema = z.object({
   contractId: z.string().uuid(),
   paymentType: z.enum(["alquiler", "expensas", "luz", "gas", "agua", "otro"]),
-  period: z.string().trim().min(1, "Ingresá el período (ej. 2026-08)."),
+  period: z.string().trim().regex(PERIOD_PATTERN, "Elegí el mes del pago."),
   amount: z.coerce.number().optional().or(z.nan()),
   paid: z.coerce.boolean().optional(),
   notes: z.string().trim().optional(),
@@ -194,7 +269,7 @@ export async function addPayment(
     period: data.period,
     amount: Number.isFinite(data.amount) ? data.amount : null,
     paid: data.paid ?? false,
-    paid_at: data.paid ? new Date().toISOString().slice(0, 10) : null,
+    paid_at: data.paid ? todayInArgentina() : null,
     notes: data.notes || null,
   });
 
@@ -202,8 +277,15 @@ export async function addPayment(
     return { error: "No se pudo cargar el pago." };
   }
 
-  revalidatePath(`/admin/administraciones/${data.contractId}`);
+  revalidatePayments(data.contractId);
   return {};
+}
+
+/** Every screen that shows payments: contract detail, Cobros, Resumen. */
+function revalidatePayments(contractId?: string) {
+  if (contractId) revalidatePath(`/admin/administraciones/${contractId}`);
+  revalidatePath("/admin/cobros");
+  revalidatePath("/admin");
 }
 
 export async function togglePaymentPaid(id: string, contractId: string, paid: boolean) {
@@ -211,16 +293,176 @@ export async function togglePaymentPaid(id: string, contractId: string, paid: bo
   const supabase = await createClient();
   await supabase
     .from("rental_payments")
-    .update({ paid, paid_at: paid ? new Date().toISOString().slice(0, 10) : null })
+    .update({ paid, paid_at: paid ? todayInArgentina() : null })
     .eq("id", id);
-  revalidatePath(`/admin/administraciones/${contractId}`);
+  revalidatePayments(contractId);
 }
 
 export async function deletePayment(id: string, contractId: string) {
   await requireStaff();
   const supabase = await createClient();
   await supabase.from("rental_payments").delete().eq("id", id);
-  revalidatePath(`/admin/administraciones/${contractId}`);
+  revalidatePayments(contractId);
+}
+
+/**
+ * Creates the pending "alquiler" charge for `period` on each active contract
+ * that doesn't have one yet, using the contract's current rent. Safe to run
+ * twice: contracts that already have that month's rent are skipped.
+ * `contractId` limits it to a single contract; `markPaid` registers it
+ * already collected (the one-click "Cobrado" on Cobros).
+ */
+export async function generateMonthlyRents(
+  period: string,
+  contractId?: string,
+  markPaid = false,
+): Promise<{ created: number; error?: string }> {
+  await requireStaff();
+  if (!PERIOD_PATTERN.test(period)) return { created: 0, error: "Mes inválido." };
+
+  const supabase = await createClient();
+  let query = supabase
+    .from("rental_contracts")
+    .select("id, rent_amount, start_date, rental_payments(period, payment_type)")
+    .eq("status", "activo");
+  if (contractId) query = query.eq("id", contractId);
+  const { data, error } = await query;
+  if (error) return { created: 0, error: "No se pudieron leer los contratos." };
+
+  const rows = (data ?? [])
+    .filter((c) => c.start_date.slice(0, 7) <= period)
+    .filter((c) => !(c.rental_payments ?? []).some((p) => p.period === period && p.payment_type === "alquiler"))
+    .map((c) => ({
+      contract_id: c.id,
+      payment_type: "alquiler",
+      period,
+      amount: c.rent_amount,
+      paid: markPaid,
+      paid_at: markPaid ? todayInArgentina() : null,
+    }));
+
+  if (rows.length > 0) {
+    const { error: insertError } = await supabase.from("rental_payments").insert(rows);
+    if (insertError) return { created: 0, error: "No se pudieron generar los alquileres." };
+  }
+
+  revalidatePayments(contractId);
+  return { created: rows.length };
+}
+
+const contractEditSchema = z
+  .object({
+    contractId: z.string().uuid(),
+    ownerName: z.string().trim().min(2, "Ingresá el nombre del propietario.").max(200),
+    ownerPhone: z.string().trim().max(100).optional(),
+    ownerEmail: optionalEmailSchema,
+    tenantName: z.string().trim().min(2, "Ingresá el nombre del inquilino.").max(200),
+    tenantPhone: z.string().trim().max(100).optional(),
+    tenantEmail: optionalEmailSchema,
+    startDate: isoDateSchema,
+    endDate: isoDateSchema.optional(),
+    rentAmount: z.coerce.number().min(0, "Ingresá un monto de alquiler válido.").optional().or(z.nan()),
+    rentCurrency: z.enum(["ARS", "USD"]),
+    expensasAmount: z.coerce.number().min(0).optional().or(z.nan()),
+    notes: z.string().trim().max(2000).optional(),
+  })
+  .superRefine((data, context) => {
+    if (data.endDate && data.endDate < data.startDate) {
+      context.addIssue({ code: "custom", path: ["endDate"], message: "La fecha de fin no puede ser anterior al inicio." });
+    }
+  });
+
+export type ContractEditState = { error?: string; saved?: boolean };
+
+/**
+ * Edits an existing administración: contract data plus the owner/tenant
+ * contact details. The rent amount is only editable while no adjustment has
+ * been registered — after that it changes exclusively through "Registrar
+ * ajuste", so the adjustment history stays truthful.
+ */
+export async function updateContract(_prev: ContractEditState, formData: FormData): Promise<ContractEditState> {
+  try {
+    await requireStaff();
+  } catch {
+    return { error: "No tenés permiso para editar administraciones." };
+  }
+
+  const parsed = contractEditSchema.safeParse({
+    contractId: formData.get("contractId"),
+    ownerName: formData.get("ownerName"),
+    ownerPhone: formData.get("ownerPhone") || undefined,
+    ownerEmail: formData.get("ownerEmail") || undefined,
+    tenantName: formData.get("tenantName"),
+    tenantPhone: formData.get("tenantPhone") || undefined,
+    tenantEmail: formData.get("tenantEmail") || undefined,
+    startDate: formData.get("startDate"),
+    endDate: formData.get("endDate") || undefined,
+    rentAmount: formData.get("rentAmount") || undefined,
+    rentCurrency: formData.get("rentCurrency") || "ARS",
+    expensasAmount: formData.get("expensasAmount") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Revisá los campos." };
+  }
+  const data = parsed.data;
+  const supabase = await createClient();
+
+  const { data: current } = await supabase
+    .from("rental_contracts")
+    .select("id, start_date, owner_id, tenant_id, adjustment_type, adjustment_frequency_months, rental_adjustments(id)")
+    .eq("id", data.contractId)
+    .maybeSingle();
+  if (!current) return { error: "No se encontró el contrato." };
+
+  const canEditRent = (current.rental_adjustments ?? []).length === 0;
+  const { error } = await supabase
+    .from("rental_contracts")
+    .update({
+      start_date: data.startDate,
+      end_date: data.endDate || null,
+      rent_currency: data.rentCurrency,
+      expensas_amount: finiteOrNull(data.expensasAmount),
+      notes: data.notes || null,
+      ...(canEditRent && Number.isFinite(data.rentAmount) ? { rent_amount: data.rentAmount as number } : {}),
+    })
+    .eq("id", data.contractId);
+  if (error) return { error: "No se pudo guardar el contrato." };
+
+  const contactUpdates = [
+    current.owner_id
+      ? supabase
+          .from("contacts")
+          .update({ full_name: data.ownerName, contact_phone: data.ownerPhone || null, contact_email: data.ownerEmail || null })
+          .eq("id", current.owner_id)
+      : null,
+    current.tenant_id
+      ? supabase
+          .from("contacts")
+          .update({ full_name: data.tenantName, contact_phone: data.tenantPhone || null, contact_email: data.tenantEmail || null })
+          .eq("id", current.tenant_id)
+      : null,
+  ].filter(Boolean);
+  const contactResults = await Promise.all(contactUpdates);
+  if (contactResults.some((result) => result?.error)) {
+    return { error: "Se guardó el contrato, pero no los datos de contacto." };
+  }
+
+  // The next adjustment date is derived from the start date (until a first
+  // adjustment exists) — recompute it through the same RPC as always.
+  if (current.start_date !== data.startDate && current.adjustment_type && current.adjustment_frequency_months) {
+    await supabase.rpc("update_rental_adjustment_settings", {
+      p_contract_id: data.contractId,
+      p_adjustment_type: current.adjustment_type,
+      p_adjustment_frequency_months: current.adjustment_frequency_months,
+    });
+  }
+
+  revalidatePath(`/admin/administraciones/${data.contractId}`);
+  revalidatePath("/admin/administraciones");
+  revalidatePath("/admin/contactos");
+  revalidatePath("/admin");
+  return { saved: true };
 }
 
 const adjustmentSettingsSchema = z.object({

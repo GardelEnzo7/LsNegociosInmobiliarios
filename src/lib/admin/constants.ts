@@ -126,3 +126,17 @@ export function isWithinDays(iso: string, days: number): boolean {
   const now = Date.now();
   return d >= now && d <= now + days * 24 * 60 * 60 * 1000;
 }
+
+/** Value of the property <select> in "Nueva administración" that means
+ * "create a new (draft) property here" instead of picking an existing one. */
+export const NEW_PROPERTY_OPTION = "__new__";
+
+/** Charge types for a rental payment (rental_payments.payment_type). */
+export const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  alquiler: "Alquiler",
+  expensas: "Expensas",
+  luz: "Luz",
+  gas: "Gas",
+  agua: "Agua",
+  otro: "Otro",
+};

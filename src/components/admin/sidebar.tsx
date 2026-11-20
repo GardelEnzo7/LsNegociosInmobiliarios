@@ -12,6 +12,9 @@ import {
   IconChart,
   IconPortrait,
   IconStar,
+  IconMail,
+  IconCalculator,
+  IconUsers,
 } from "@/components/site/icons";
 import { IconExternal, IconLogout } from "@/components/admin/ui/icons";
 
@@ -21,15 +24,20 @@ type NavItem = {
   icon: (props: { className?: string }) => React.ReactElement;
   exact?: boolean;
   adminOnly?: boolean;
+  /** Shows the unread-messages count next to the label. */
+  badge?: "messages";
 };
 
 const OPERATIVE_LINKS: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: IconHome, exact: true },
+  { href: "/admin/consultas", label: "Consultas", icon: IconMail, badge: "messages" },
   { href: "/admin/propiedades", label: "Propiedades", icon: IconBuilding },
 ];
 
 const MANAGEMENT_LINKS: NavItem[] = [
   { href: "/admin/administraciones", label: "Administraciones", icon: IconKey },
+  { href: "/admin/cobros", label: "Cobros", icon: IconCalculator },
+  { href: "/admin/contactos", label: "Contactos", icon: IconUsers },
   { href: "/admin/quien-te-acompana", label: "Quién te acompaña", icon: IconStar },
   { href: "/admin/estadisticas", label: "Estadísticas", icon: IconChart },
   { href: "/admin/usuarios", label: "Usuarios", icon: IconPortrait, adminOnly: true },
@@ -44,9 +52,11 @@ export function isNavActive(pathname: string, href: string, exact?: boolean) {
 export function Sidebar({
   role,
   profileName,
+  newMessages = 0,
 }: {
   role?: string | null;
   profileName?: string | null;
+  newMessages?: number;
 }) {
   return (
     <aside className="hidden h-screen w-60 shrink-0 flex-col bg-grafito-dark lg:sticky lg:top-0 lg:flex">
@@ -62,7 +72,7 @@ export function Sidebar({
         </div>
       </div>
 
-      <AdminNav role={role} />
+      <AdminNav role={role} newMessages={newMessages} />
 
       <SidebarFooter role={role} profileName={profileName} />
     </aside>
@@ -74,10 +84,12 @@ export function AdminNav({
   role,
   size = "md",
   onNavigate,
+  newMessages = 0,
 }: {
   role?: string | null;
   size?: "md" | "lg";
   onNavigate?: () => void;
+  newMessages?: number;
 }) {
   const pathname = usePathname();
   const managementLinks = MANAGEMENT_LINKS.filter((link) => !link.adminOnly || role === "admin");
@@ -87,7 +99,13 @@ export function AdminNav({
       <ul className="space-y-0.5">
         {OPERATIVE_LINKS.map((link) => (
           <li key={link.href}>
-            <NavLink link={link} size={size} active={isNavActive(pathname, link.href, link.exact)} onNavigate={onNavigate} />
+            <NavLink
+              link={link}
+              size={size}
+              active={isNavActive(pathname, link.href, link.exact)}
+              onNavigate={onNavigate}
+              count={link.badge === "messages" ? newMessages : 0}
+            />
           </li>
         ))}
       </ul>
@@ -113,11 +131,13 @@ function NavLink({
   active,
   size,
   onNavigate,
+  count = 0,
 }: {
   link: NavItem;
   active: boolean;
   size: "md" | "lg";
   onNavigate?: () => void;
+  count?: number;
 }) {
   const Icon = link.icon;
   return (
@@ -135,6 +155,12 @@ function NavLink({
     >
       <Icon className={cn("h-[18px] w-[18px] shrink-0", active ? "text-petroleo-claro" : "text-blanco-roto/40")} />
       <span className="flex-1 truncate">{link.label}</span>
+      {count > 0 ? (
+        <span className="min-w-5 rounded-full bg-petroleo-claro px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none tabular-nums text-grafito-dark">
+          {count}
+          <span className="sr-only"> sin leer</span>
+        </span>
+      ) : null}
     </Link>
   );
 }

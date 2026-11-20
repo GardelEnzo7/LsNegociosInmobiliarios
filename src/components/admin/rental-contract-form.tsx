@@ -13,7 +13,9 @@ import {
   selectClass,
   textareaClass,
 } from "@/components/admin/ui/form-field";
-import { ADJUSTMENT_FREQUENCY_OPTIONS, ADJUSTMENT_TYPE_LABELS } from "@/lib/admin/constants";
+import { ADJUSTMENT_FREQUENCY_OPTIONS, ADJUSTMENT_TYPE_LABELS, NEW_PROPERTY_OPTION } from "@/lib/admin/constants";
+import { PROPERTY_TYPE_LABELS } from "@/lib/constants";
+import { formatNeighborhood } from "@/lib/utils";
 
 type PropertyOption = { id: string; title: string; neighborhood: string };
 
@@ -22,6 +24,12 @@ const initialState: ContractFormState = {};
 export function RentalContractForm({ properties }: { properties: PropertyOption[] }) {
   const [state, formAction, pending] = useActionState(createContract, initialState);
   const [open, setOpen] = useState(false);
+  const [propertyChoice, setPropertyChoice] = useState("");
+  const creatingProperty = propertyChoice === NEW_PROPERTY_OPTION;
+  // Existing barrios as suggestions, so a new draft reuses the same spelling.
+  const neighborhoods = Array.from(
+    new Set(properties.map((p) => formatNeighborhood(p.neighborhood)).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b, "es"));
 
   if (!open) {
     return (
@@ -44,10 +52,18 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
       <form action={formAction} className="space-y-7">
         <FormField label="Propiedad" htmlFor="propertyId">
           <SelectShell>
-            <select id="propertyId" name="propertyId" required defaultValue="" className={selectClass}>
+            <select
+              id="propertyId"
+              name="propertyId"
+              required
+              value={propertyChoice}
+              onChange={(event) => setPropertyChoice(event.target.value)}
+              className={selectClass}
+            >
               <option value="" disabled>
                 Elegí una propiedad
               </option>
+              <option value={NEW_PROPERTY_OPTION}>+ Agregar nueva propiedad</option>
               {properties.map((property) => (
                 <option key={property.id} value={property.id}>
                   {property.title} — {property.neighborhood}
@@ -56,6 +72,56 @@ export function RentalContractForm({ properties }: { properties: PropertyOption[
             </select>
           </SelectShell>
         </FormField>
+
+        {creatingProperty ? (
+          <div className="grid gap-x-4 gap-y-5 rounded-xl bg-plata/70 p-4 sm:grid-cols-3 sm:p-5">
+            <div className="sm:col-span-3">
+              <FieldGroupLabel>Propiedad nueva</FieldGroupLabel>
+              <p className="mt-1 text-xs text-grafito/55">
+                Se guarda como borrador: no aparece en la web. Después podés completarla desde Propiedades.
+              </p>
+            </div>
+            <FormField label="Título o dirección" htmlFor="newPropertyTitle">
+              <input
+                id="newPropertyTitle"
+                name="newPropertyTitle"
+                required
+                maxLength={200}
+                placeholder="Ej: Depto 2 dorm. — Mitre 1200"
+                className={inputClass}
+              />
+            </FormField>
+            <FormField label="Barrio" htmlFor="newPropertyNeighborhood">
+              <input
+                id="newPropertyNeighborhood"
+                name="newPropertyNeighborhood"
+                required
+                maxLength={100}
+                list="rental-neighborhoods"
+                className={inputClass}
+              />
+              <datalist id="rental-neighborhoods">
+                {neighborhoods.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </FormField>
+            <FormField label="Tipo" htmlFor="newPropertyType">
+              <SelectShell>
+                <select id="newPropertyType" name="newPropertyType" required defaultValue="" className={selectClass}>
+                  <option value="" disabled>
+                    Elegí el tipo
+                  </option>
+                  {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </SelectShell>
+            </FormField>
+          </div>
+        ) : null}
 
         <div className="grid gap-x-4 gap-y-5 border-t border-grafito/[0.06] pt-6 sm:grid-cols-3">
           <FieldGroupLabel>Propietario / cliente</FieldGroupLabel>

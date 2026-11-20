@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/admin/sidebar";
 import { MobileNav } from "@/components/admin/mobile-nav";
 import { ConfirmProvider } from "@/components/admin/ui/confirm-dialog";
-import { getAdminProfileForCurrentUser } from "@/lib/data/admin";
+import { getAdminProfileForCurrentUser, getNewMessagesCount } from "@/lib/data/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -27,15 +27,15 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     redirect("/");
   }
 
-  const profile = await getAdminProfileForCurrentUser();
+  const [profile, newMessages] = await Promise.all([getAdminProfileForCurrentUser(), getNewMessagesCount()]);
 
   return (
     <ConfirmProvider>
       {/* Column below lg (mobile top bar above the content), row from lg
           (sidebar beside it). */}
       <div className="flex min-h-screen flex-col bg-plata lg:flex-row">
-        <Sidebar role={role} profileName={profile?.full_name ?? null} />
-        <MobileNav role={role} profileName={profile?.full_name ?? null} />
+        <Sidebar role={role} profileName={profile?.full_name ?? null} newMessages={newMessages} />
+        <MobileNav role={role} profileName={profile?.full_name ?? null} newMessages={newMessages} />
         <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
